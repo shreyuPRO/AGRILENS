@@ -1,0 +1,46 @@
+{
+ "note": "Source archives are kept outside the dataset so it can be reconstructed. The extracted AgriLens\\datasets folder used in earlier work no longer exists; Apple, Potato and Tomato were re-extracted from Datasets.zip and verified per file.",
+ "archives": [
+  {
+   "description": "Datasets.zip (Apple, Potato, Tomato, original MangoLeafBD copy)",
+   "path": "d:\\OneDrive - Faiyaz Personal\\OneDrive\\3. Shreyance related Documents\\AgriLens\\Datasets.zip",
+   "exists": true,
+   "bytes": 833212280,
+   "sha256": "87a22c4647b515865c6eb12aafd71e77d93f4d83ea108b8bb18c0434d718e977"
+  },
+  {
+   "description": "Mango Leaf Disease Dataset.zip (legacy compilation, Mendeley 7ghdbftp54 v1)",
+   "path": "d:\\OneDrive - Faiyaz Personal\\OneDrive\\3. Shreyance related Documents\\AgriLens\\Mango Leaf Disease Dataset.zip",
+   "exists": true,
+   "bytes": 1415770097,
+   "sha256": "962e98e5b588d2d93c663e20b3811d5d0222276bcd9b5c2fe6442e6c96fbf5c7"
+  },
+  {
+   "description": "SAR-MLD1-2025 Part 01.zip (Mendeley sd8hzpg69b v4)",
+   "path": "d:\\OneDrive - Faiyaz Personal\\OneDrive\\3. Shreyance related Documents\\AgriLens\\SAR-MLD1-2025 Part 01.zip",
+   "exists": true,
+   "bytes": 8968039987,
+   "sha256": "18ce9377286c6c933497ad8768da2aa260a823fe461c158fb09d0d23d1ed27ce"
+  },
+  {
+   "description": "SAR-MLD1-2025 Part 02.zip (Mendeley j3bn63t4sp v4)",
+   "path": "d:\\OneDrive - Faiyaz Personal\\OneDrive\\3. Shreyance related Documents\\AgriLens\\SAR-MLD1-2025 Part 02.zip",
+   "exists": true,
+   "bytes": 4588293483,
+   "sha256": "9f99dfe390b70824a1c0bb4292fbc67f51ccf860db88cd393efff7d2d9593238"
+  },
+  {
+   "description": "ABCGMP six-crop dataset zip (Mendeley fhbvmpcyy2, 'version 1')",
+   "path": "D:\\Downloads\\6  indian Fruit crops Fruit and Leaf Disease Dataset (version 1).zip",
+   "exists": true,
+   "bytes": 201088678,
+   "sha256": "a6d9c4f525bebf269236a14010505d1f9967e5cdd6cbc233cffd54a2bf0a74b6"
+  },
+  {
+   "description": "AGL-MANGO-MD v1.0.0 and v1.1.0-rc1 (frozen Mango releases; Mango image provenance)",
+   "path": "D:\\AGRILENS_Training\\AGL-MANGO-MD",
+   "sha256": null,
+   "note": "see their FREEZE_CHECKSUMS.sha256 / provenance records"
+  }
+ ]
+}

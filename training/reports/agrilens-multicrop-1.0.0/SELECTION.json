@@ -1,0 +1,14 @@
+{
+ "rule": "training/configurations/SELECTION_RULE.md points 3-4 (validation only)",
+ "mean_val_macro_f1_by_recipe": {
+  "R1_last_stage": 0.9563122417052237,
+  "R2_last_two_stages": 0.9638514580346988
+ },
+ "R2_minus_R1": 0.007539216329475185,
+ "chosen_recipe": "R2_last_two_stages",
+ "reason": "R2 better by >= 0.005",
+ "chosen_run": "multicrop1_R2_s42",
+ "chosen_val_macro_f1": 0.9642502817295483,
+ "chosen_checkpoint": "D:\\AGRILENS_Training\\training_runs\\agrilens-multicrop-1.0.0\\multicrop1_R2_s42\\best.pt",
+ "test_data_read": false
+}

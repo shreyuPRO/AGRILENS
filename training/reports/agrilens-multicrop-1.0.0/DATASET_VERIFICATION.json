@@ -1,0 +1,529 @@
+{
+ "dataset": "D:\\AGRILENS_Training\\datasets\\AGL-MULTICROP-MD\\AGL-MULTICROP-MD-1.0.0",
+ "freeze": {
+  "freeze_file_sha256": "12449a5caf1bfc736a9be1a83fa71f603b29045b48eaa7db82b0bffd2e5f8c0a",
+  "files_listed": 29982,
+  "files_on_disk_excluding_freeze_file": 29982,
+  "files_on_disk_including_freeze_file": 29983,
+  "missing_or_changed": 0,
+  "examples": [],
+  "unlisted_files": [],
+  "unlisted_count": 0
+ },
+ "records": {
+  "total": 44612,
+  "by_status": {
+   "accepted": 26917,
+   "rejected": 1919,
+   "quarantined": 2205,
+   "accepted_excluded_from_splits": 412,
+   "supplementary": 430,
+   "excluded_augmented": 12729
+  },
+  "by_original_or_augmented": {
+   "likely_original": 1718,
+   "likely_derivative": 1061,
+   "original_photo": 26751,
+   "derivative": 1811,
+   "background_removed_original": 542,
+   "augmented": 12729
+  },
+  "by_status_and_origin": {
+   "accepted | likely_derivative": 1015,
+   "accepted | likely_original": 1696,
+   "accepted | original_photo": 24206,
+   "accepted_excluded_from_splits | original_photo": 412,
+   "excluded_augmented | augmented": 12729,
+   "quarantined | background_removed_original": 55,
+   "quarantined | likely_derivative": 25,
+   "quarantined | likely_original": 22,
+   "quarantined | original_photo": 2103,
+   "rejected | background_removed_original": 57,
+   "rejected | derivative": 1811,
+   "rejected | likely_derivative": 21,
+   "rejected | original_photo": 30,
+   "supplementary | background_removed_original": 430
+  }
+ },
+ "accepted_by_crop": {
+  "Apple": 1730,
+  "Mango": 7038,
+  "Potato": 2152,
+  "Tomato": 15997
+ },
+ "accepted_by_class": {
+  "APL001 Apple_Rust": 622,
+  "APL002 Apple_Scab": 592,
+  "APL003 Apple_healthy": 516,
+  "MNG001 Mango_Anthracnose": 1357,
+  "MNG002 Mango_Bacterial_Canker": 884,
+  "MNG003 Mango_Cutting_Weevil": 500,
+  "MNG004 Mango_Die_Back": 448,
+  "MNG005 Mango_Gall_Midge": 500,
+  "MNG006 Mango_Healthy": 1597,
+  "MNG007 Mango_Powdery_Mildew": 1252,
+  "MNG008 Mango_Sooty_Mould": 500,
+  "POT001 Potato_Early_blight": 1000,
+  "POT002 Potato_Late_blight": 1000,
+  "POT003 Potato_healthy": 152,
+  "TOM001 Tomato_Bacterial_spot": 2127,
+  "TOM002 Tomato_Early_blight": 1000,
+  "TOM003 Tomato_Late_blight": 1901,
+  "TOM004 Tomato_Leaf_Mold": 952,
+  "TOM005 Tomato_Septoria_leaf_spot": 1771,
+  "TOM006 Tomato_Spider_mites_Two_spotted_spider_mite": 1676,
+  "TOM007 Tomato_Target_Spot": 1404,
+  "TOM008 Tomato_Tomato_YellowLeaf_Curl_Virus": 3208,
+  "TOM009 Tomato_Tomato_mosaic_virus": 373,
+  "TOM010 Tomato_healthy": 1585
+ },
+ "status_by_crop": {
+  "Apple": {
+   "accepted": 1730
+  },
+  "Mango": {
+   "accepted": 7038,
+   "rejected": 1905,
+   "quarantined": 2205,
+   "accepted_excluded_from_splits": 412,
+   "supplementary": 430,
+   "excluded_augmented": 12729
+  },
+  "Potato": {
+   "accepted": 2152
+  },
+  "Tomato": {
+   "accepted": 15997,
+   "rejected": 14
+  }
+ },
+ "status_by_class": {
+  "APL001": {
+   "accepted": 622
+  },
+  "APL002": {
+   "accepted": 592
+  },
+  "APL003": {
+   "accepted": 516
+  },
+  "MNG001": {
+   "accepted": 1357,
+   "rejected": 322,
+   "quarantined": 102,
+   "supplementary": 17,
+   "excluded_augmented": 1749
+  },
+  "MNG002": {
+   "accepted": 884,
+   "quarantined": 41,
+   "supplementary": 212,
+   "rejected": 127,
+   "excluded_augmented": 2534
+  },
+  "MNG003": {
+   "accepted": 500,
+   "rejected": 241,
+   "supplementary": 48,
+   "quarantined": 18,
+   "excluded_augmented": 1583
+  },
+  "MNG004": {
+   "accepted": 448,
+   "quarantined": 45,
+   "rejected": 327,
+   "excluded_augmented": 1280
+  },
+  "MNG005": {
+   "accepted": 500,
+   "quarantined": 984,
+   "rejected": 283,
+   "supplementary": 39,
+   "excluded_augmented": 2233
+  },
+  "MNG006": {
+   "accepted": 1597,
+   "quarantined": 1,
+   "rejected": 251,
+   "accepted_excluded_from_splits": 192,
+   "excluded_augmented": 1250
+  },
+  "MNG007": {
+   "accepted": 1252,
+   "quarantined": 11,
+   "accepted_excluded_from_splits": 220,
+   "supplementary": 52,
+   "rejected": 154,
+   "excluded_augmented": 775
+  },
+  "MNG008": {
+   "accepted": 500,
+   "supplementary": 62,
+   "quarantined": 3,
+   "rejected": 200,
+   "excluded_augmented": 1325
+  },
+  "MNG009": {
+   "quarantined": 1000
+  },
+  "POT001": {
+   "accepted": 1000
+  },
+  "POT002": {
+   "accepted": 1000
+  },
+  "POT003": {
+   "accepted": 152
+  },
+  "TOM001": {
+   "accepted": 2127
+  },
+  "TOM002": {
+   "accepted": 1000
+  },
+  "TOM003": {
+   "accepted": 1901,
+   "rejected": 8
+  },
+  "TOM004": {
+   "accepted": 952
+  },
+  "TOM005": {
+   "accepted": 1771
+  },
+  "TOM006": {
+   "accepted": 1676
+  },
+  "TOM007": {
+   "accepted": 1404
+  },
+  "TOM008": {
+   "accepted": 3208
+  },
+  "TOM009": {
+   "accepted": 373
+  },
+  "TOM010": {
+   "accepted": 1585,
+   "rejected": 6
+  }
+ },
+ "manifest_vs_freeze_hash": {
+  "images_checked": 29964,
+  "mismatches": 0
+ },
+ "exact_duplicates_among_kept_images": 0,
+ "rejected_reasons": {
+  "derivative_of_MANGOLEAFBD_original(background removed)": 1807,
+  "no_visible_leaf_fg<0.02": 12,
+  "derivative_of_MANGOLEAFBD_original(background removed)|no_visible_leaf_fg<0.02": 4,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214611_421.jpg": 3,
+  "rejected: defocused (user decision)": 2,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/20241028_154150 (1).jpg": 2,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214611_177.jpg": 2,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214617_922.jpg": 2,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214617_970.jpg": 2,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214617_931.jpg": 2,
+  "within_class_exact_duplicate_of:mango dataset/Anthracnose/20211011_170706 (Custom).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Anthracnose/20211011_170708 (Custom).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Anthracnose/20211011_170709 (Custom).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Anthracnose/20211011_170712 (Custom).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Anthracnose/20211011_170714 (Custom).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Anthracnose/20211011_170717 (Custom).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Anthracnose/20211011_171141 (Custom).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Anthracnose/IMG_20211011_140304 (Custom).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Anthracnose/IMG_20211011_140539 (Custom).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Anthracnose/IMG_20211011_140557 (Custom).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Anthracnose/IMG_20211011_140624 (Custom).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Anthracnose/IMG_20211011_153429 (Custom).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Anthracnose/IMG_20211011_153557 (Custom).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Anthracnose/IMG_20211011_153604 (Custom).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Die Back/20211129_161600 (Custom)(1).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Die Back/20211129_161605 (Custom)(1).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Die Back/20211129_161611 (Custom)(1).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Die Back/20211129_161616 (Custom)(1).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Die Back/20211129_161620 (Custom)(1).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Die Back/20211129_161628 (Custom)(1).jpg": 1,
+  "within_class_exact_duplicate_of:mango dataset/Die Back/20211129_161631 (Custom)(1).jpg": 1,
+  "within_class_exact_duplicate_of:SAR-MLD1-2025 A High Quality Mango Leaf Dataset fo/dataset_part-1/Anthracnose/20231230_1147123.jpg": 1,
+  "within_class_exact_duplicate_of:SAR-MLD1-2025 A High Quality Mango Leaf Dataset fo/dataset_part-1/Anthracnose/20231230_124204 (2).jpg": 1,
+  "within_class_exact_duplicate_of:SAR-MLD1-2025 A High Quality Mango Leaf Dataset fo/dataset_part-1/Anthracnose/20231230_125135.jpg": 1,
+  "within_class_exact_duplicate_of:SAR-MLD1-2025 A High Quality Mango Leaf Dataset fo/dataset_part-1/Anthracnose/20240103_122616 (1).jpg": 1,
+  "within_class_exact_duplicate_of:SAR-MLD1-2025 A High Quality Mango Leaf Dataset fo/dataset_part-1/Anthracnose/20240103_123212 (1).jpg": 1,
+  "within_class_exact_duplicate_of:SAR-MLD1-2025 A High Quality Mango Leaf Dataset fo/dataset_part-1/Anthracnose/received_1081754206514073 (1).jpeg": 1,
+  "within_class_exact_duplicate_of:SAR-MLD1-2025 A High Quality Mango Leaf Dataset fo/dataset_part-1/Anthracnose/received_209673032222978 (1).jpeg": 1,
+  "within_class_exact_duplicate_of:SAR-MLD1-2025 A High Quality Mango Leaf Dataset fo/dataset_part-1/Anthracnose/received_908998550594882 (1).jpeg": 1,
+  "within_class_exact_duplicate_of:SAR-MLD1-2025 A High Quality Mango Leaf Dataset fo/dataset_part-1/Golmichi/20240102_111250 (1).jpg": 1,
+  "within_class_exact_duplicate_of:SAR-MLD1-2025 A High Quality Mango Leaf Dataset fo/dataset_part-1/Golmichi/IMG20240106153053-uRZuXP.jpg": 1,
+  "within_class_exact_duplicate_of:SAR-MLD1-2025 A High Quality Mango Leaf Dataset fo/dataset_part-1/Golmichi/IMG20240106153058-xzfzre.jpg": 1,
+  "within_class_exact_duplicate_of:SAR-MLD1-2025 A High Quality Mango Leaf Dataset fo/dataset_part-1/Golmichi/IMG20240106153109-zJAUMb.jpg": 1,
+  "within_class_exact_duplicate_of:SAR-MLD1-2025 A High Quality Mango Leaf Dataset fo/dataset_part-1/Golmichi/IMG20240106153117-5cFXg3.jpg": 1,
+  "within_class_exact_duplicate_of:SAR-MLD1-2025 A High Quality Mango Leaf Dataset fo/dataset_part-1/Golmichi/received_850079923536392 (1).jpeg": 1,
+  "within_class_exact_duplicate_of:process data/Anthracnose/IMG_20241103_214820_554 (1).jpg": 1,
+  "within_class_exact_duplicate_of:process data/Anthracnose/IMG_20241103_214820_632 (1).jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/20241027_141623-removebg-preview (1).png": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/20241028_145630_0_-removebg-preview (1).png": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/20241028_150004 (1).jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/20241028_151218 (1).jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/20241028_154146 (1).jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/20241028_160635 (1).jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214618_181.jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214640_347 (1).jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214651_646 (1).jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214617_945.jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214634_568.jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214634_790.jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214640_179.jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214640_561.jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214646_702.jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214646_347.jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214646_496.jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214652_019.jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214646_965.jpg": 1,
+  "within_class_exact_duplicate_of:process data/Bacterial Canker/IMG_20241103_214646_145.jpg": 1,
+  "within_class_exact_duplicate_of:process data/Cutting Weevil/20241027_143711 (1).jpg": 1,
+  "within_class_exact_duplicate_of:process data/Cutting Weevil/IMG_20241103_214534_860 (1).jpg": 1,
+  "within_class_exact_duplicate_of:process data/Sooty Mould/IMG-20241104-WA0093 (1).jpg": 1,
+  "within_class_exact_duplicate_of:process data/Sooty Mould/IMG-20241104-WA0101 (1).jpg": 1,
+  "within_class_exact_duplicate_of:process data/Sooty Mould/IMG-20241104-WA0119 (1).jpg": 1,
+  "within_class_exact_duplicate_of:process data/Sooty Mould/IMG-20241104-WA0129 (1).jpg": 1,
+  "within_class_exact_duplicate_of:process data/Sooty Mould/IMG-20241104-WA0132 (1).jpg": 1,
+  "within_class_exact_duplicate_of:process data/Sooty Mould/IMG-20241104-WA0187 (1).jpg": 1,
+  "within_class_exact_duplicate_of:process data/Sooty Mould/IMG-20241104-WA0228 (1).jpg": 1,
+  "within_class_exact_duplicate_of:process data/Sooty Mould/IMG-20241104-WA0235 (1).jpg": 1,
+  "within-class exact duplicate of TOM003_PLANTVILLAGE_IMG000221": 1,
+  "within-class exact duplicate of TOM003_PLANTVILLAGE_IMG000476": 1,
+  "within-class exact duplicate of TOM003_PLANTVILLAGE_IMG000556": 1,
+  "within-class exact duplicate of TOM003_PLANTVILLAGE_IMG001131": 1,
+  "within-class exact duplicate of TOM003_PLANTVILLAGE_IMG001609": 1,
+  "within-class exact duplicate of TOM003_PLANTVILLAGE_IMG000987": 1,
+  "within-class exact duplicate of TOM003_PLANTVILLAGE_IMG000648": 1,
+  "within-class exact duplicate of TOM003_PLANTVILLAGE_IMG000712": 1,
+  "within-class exact duplicate of TOM010_PLANTVILLAGE_IMG000035": 1,
+  "within-class exact duplicate of TOM010_PLANTVILLAGE_IMG000343": 1,
+  "within-class exact duplicate of TOM010_PLANTVILLAGE_IMG000459": 1,
+  "within-class exact duplicate of TOM010_PLANTVILLAGE_IMG000170": 1,
+  "within-class exact duplicate of TOM010_PLANTVILLAGE_IMG000959": 1,
+  "within-class exact duplicate of TOM010_PLANTVILLAGE_IMG000347": 1
+ },
+ "quarantine_reasons": {
+  "provisional class Turning Brown (symptom, not a diagnosis); not in taxonomy 1.0.0; pending expert definition": 1000,
+  "provisional source-label mapping SAR 'Golmichi' -> Gall Midge; pending expert review (MangoLeafBD Gall Midge used for training)": 921,
+  "borderline_blur_below_source_p1": 35,
+  "HOLD_small_leaf: tiny_leaf_fg<0.05": 34,
+  "tiny_leaf_fg<0.05": 25,
+  "background-removed legacy image held in quarantine in AGL-MANGO-MD v1.0.0: tiny_leaf_fg<0.05": 21,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG001->MNG005(9/10)": 13,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG001->MNG005(8/10)": 10,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG001->MNG009(9/10)": 10,
+  "HOLD_individual_review_failed: borderline_blur_below_source_p1": 9,
+  "HOLD_label_conflict: cross_class_duplicate_or_label_conflict:MNG001/E1_exact_sha;MNG001/X_cross_class": 9,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG001->MNG009(8/10)": 8,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG005->MNG001(9/10)": 8,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG005->MNG001(10/10)": 6,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG001->MNG009(10/10)": 5,
+  "HOLD_label_conflict: cross_class_duplicate_or_label_conflict:MNG005/E1_exact_sha;MNG005/X_cross_class": 5,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG005->MNG001(8/10)": 5,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG005->MNG007(8/10)": 5,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG001->MNG006(9/10)": 4,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG001->MNG006(8/10)": 4,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG005->MNG006(9/10)": 4,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG005->MNG006(10/10)": 4,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG005->MNG007(9/10)": 4,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG005->MNG009(9/10)": 4,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG005->MNG007(10/10)": 4,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG001->MNG006(10/10)": 3,
+  "background-removed legacy image held in quarantine in AGL-MANGO-MD v1.0.0: cross_class_duplicate_or_label_conflict:MNG002/E1_exact_sha;MNG002/X_cross_class": 3,
+  "background-removed legacy image held in quarantine in AGL-MANGO-MD v1.0.0: cross_class_duplicate_or_label_conflict:MNG003/E1_exact_sha;MNG003/X_cross_class": 3,
+  "background-removed legacy image held in quarantine in AGL-MANGO-MD v1.0.0: cross_class_duplicate_or_label_conflict:MNG001/E1_exact_sha;MNG001/X_cross_class": 3,
+  "cross_class_duplicate_or_label_conflict:MNG001/E1_exact_sha;MNG001/X_cross_class": 3,
+  "background-removed legacy image held in quarantine in AGL-MANGO-MD v1.0.0: cross_class_duplicate_or_label_conflict:MNG008/X_cross_class": 3,
+  "cross_class_duplicate_or_label_conflict:MNG005/X_cross_class": 3,
+  "HOLD_label_conflict: cross_class_duplicate_or_label_conflict:MNG005/E1_exact_sha;MNG005/X_cross_class|kNN_label_disagreement:MNG001->MNG005(8/10)": 2,
+  "HOLD_label_conflict: cross_class_duplicate_or_label_conflict:MNG005/E1_exact_sha;MNG005/X_cross_class|kNN_label_disagreement:MNG001->MNG005(9/10)": 2,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG001->MNG007(10/10)": 2,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG001->MNG007(8/10)": 2,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG005->MNG009(8/10)": 2,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG005->MNG006(8/10)": 2,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG007->MNG006(9/10)": 2,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG007->MNG009(8/10)": 2,
+  "HOLD_small_leaf: tiny_leaf_fg<0.05|borderline_blur_below_source_p1": 1,
+  "HOLD_label_conflict: cross_class_duplicate_or_label_conflict:MNG005/E1_exact_sha;MNG005/X_cross_class|kNN_label_disagreement:MNG001->MNG005(10/10)": 1,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG001->MNG005(10/10)": 1,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG001->MNG007(9/10)": 1,
+  "HOLD_label_doubt: borderline_blur_below_source_p1|kNN_label_disagreement:MNG005->MNG006(10/10)": 1,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG005->MNG009(10/10)": 1,
+  "HOLD_label_conflict: cross_class_duplicate_or_label_conflict:MNG001/E1_exact_sha;MNG001/X_cross_class|kNN_label_disagreement:MNG005->MNG001(9/10)": 1,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG006->MNG009(10/10)": 1,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG007->MNG005(10/10)": 1,
+  "HOLD_label_doubt: kNN_label_disagreement:MNG007->MNG001(8/10)": 1,
+  "background-removed legacy image held in quarantine in AGL-MANGO-MD v1.0.0: cross_class_duplicate_or_label_conflict:MNG003/X_cross_class": 1
+ },
+ "excluded_augmented_reasons": {
+  "augmented copy; parent=not_found": 169,
+  "augmented copy; parent=MNG002_LEGACY_IMG000095": 21,
+  "augmented copy; parent=MNG003_LEGACY_IMG000013": 20,
+  "augmented copy; parent=MNG003_LEGACY_IMG000044": 20,
+  "augmented copy; parent=MNG003_LEGACY_IMG000091": 20
+ },
+ "splits": {
+  "train": {
+   "images": 19153,
+   "by_crop": {
+    "Apple": 1211,
+    "Mango": 5244,
+    "Potato": 1504,
+    "Tomato": 11194
+   },
+   "by_class": {
+    "APL001": 436,
+    "APL002": 414,
+    "APL003": 361,
+    "MNG001": 745,
+    "MNG002": 797,
+    "MNG003": 426,
+    "MNG004": 344,
+    "MNG005": 354,
+    "MNG006": 1343,
+    "MNG007": 851,
+    "MNG008": 384,
+    "POT001": 700,
+    "POT002": 700,
+    "POT003": 104,
+    "TOM001": 1488,
+    "TOM002": 700,
+    "TOM003": 1331,
+    "TOM004": 664,
+    "TOM005": 1240,
+    "TOM006": 1172,
+    "TOM007": 983,
+    "TOM008": 2246,
+    "TOM009": 261,
+    "TOM010": 1109
+   }
+  },
+  "val": {
+   "images": 3844,
+   "by_crop": {
+    "Apple": 260,
+    "Mango": 852,
+    "Potato": 328,
+    "Tomato": 2404
+   },
+   "by_class": {
+    "APL001": 93,
+    "APL002": 89,
+    "APL003": 78,
+    "MNG001": 146,
+    "MNG002": 58,
+    "MNG003": 38,
+    "MNG004": 52,
+    "MNG005": 142,
+    "MNG006": 117,
+    "MNG007": 228,
+    "MNG008": 71,
+    "POT001": 152,
+    "POT002": 152,
+    "POT003": 24,
+    "TOM001": 320,
+    "TOM002": 151,
+    "TOM003": 285,
+    "TOM004": 144,
+    "TOM005": 266,
+    "TOM006": 252,
+    "TOM007": 211,
+    "TOM008": 481,
+    "TOM009": 56,
+    "TOM010": 238
+   }
+  },
+  "test_known_device": {
+   "images": 3595,
+   "by_crop": {
+    "Apple": 259,
+    "Mango": 617,
+    "Potato": 320,
+    "Tomato": 2399
+   },
+   "by_class": {
+    "APL001": 93,
+    "APL002": 89,
+    "APL003": 77,
+    "MNG001": 145,
+    "MNG002": 29,
+    "MNG003": 36,
+    "MNG004": 52,
+    "MNG005": 4,
+    "MNG006": 137,
+    "MNG007": 169,
+    "MNG008": 45,
+    "POT001": 148,
+    "POT002": 148,
+    "POT003": 24,
+    "TOM001": 319,
+    "TOM002": 149,
+    "TOM003": 285,
+    "TOM004": 144,
+    "TOM005": 265,
+    "TOM006": 252,
+    "TOM007": 210,
+    "TOM008": 481,
+    "TOM009": 56,
+    "TOM010": 238
+   }
+  },
+  "test_heldout_device": {
+   "images": 325,
+   "by_crop": {
+    "Mango": 325
+   },
+   "by_class": {
+    "MNG001": 321,
+    "MNG007": 4
+   }
+  }
+ },
+ "split_consistency": {
+  "ids_not_in_manifest": 0,
+  "split_rows_not_accepted": 0,
+  "split_column_disagrees": 0,
+  "accepted_not_in_any_split": 0,
+  "image_in_two_splits": 0
+ },
+ "leakage": {
+  "leaf_group_id": {
+   "groups": 15275,
+   "groups_in_more_than_one_split": 0
+  },
+  "copy_group_id": {
+   "groups": 25720,
+   "groups_in_more_than_one_split": 0
+  },
+  "split_unit": {
+   "groups": 11220,
+   "groups_in_more_than_one_split": 0
+  },
+  "capture_session_id (information only; sessions are not a split unit)": {
+   "sessions": 518,
+   "sessions_spanning_train_and_test": 74
+  },
+  "identical_sha256_across_splits": 0
+ },
+ "provenance": {
+  "split_images_missing_a_provenance_field": 0,
+  "by_source": {
+   "ABCGMP": 712,
+   "MANGOLEAFBD": 3902,
+   "PLANTVILLAGE": 18149,
+   "PP2020": 1730,
+   "SAR25": 2424
+  },
+  "licences": {
+   "CC BY-NC 3.0 (non-commercial)": 3902,
+   "CC BY 4.0": 2424,
+   "CC BY 4.0 per v2 record (v1 unverified)": 712,
+   "Plant Pathology 2020 Kaggle competition data (terms not verified)": 1730,
+   "CC BY-SA 3.0 (PlantVillage)": 18149
+  }
+ }
+}

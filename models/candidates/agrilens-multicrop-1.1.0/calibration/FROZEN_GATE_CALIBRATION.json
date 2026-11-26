@@ -1,0 +1,42 @@
+{
+ "rule": "largest ood_logit with false rejection of correct validation images <= 3% in every crop and every Mango source with >= 50 validation images",
+ "confidence_threshold": 0.4,
+ "ood_margin": 0.12,
+ "ood_logit_rule_value": 2.9,
+ "ood_logit_frozen": 2.9,
+ "note_on_clamp": "",
+ "at_frozen_point": {
+  "ood_logit": 2.9,
+  "frr_crop:Apple": 0.0,
+  "frr_crop:Mango": 0.022809123649459785,
+  "frr_crop:Potato": 0.0,
+  "frr_crop:Tomato": 0.008947592671495527,
+  "frr_mango_source:MANGOLEAFBD": 0.02834008097165992,
+  "frr_mango_source:SAR25": 0.016556291390728478,
+  "worst_group_frr": 0.02834008097165992,
+  "pooled_frr": 0.010663822980538524,
+  "ood_cal_accepted_nonleaf_background": 0.09090909090909091,
+  "ood_cal_accepted_nonleaf_photo": 0.15,
+  "ood_cal_accepted_nonleaf_synthetic": 0.03333333333333333,
+  "ood_cal_accepted_unsupported_mango_condition_turning_brown": 0.7875
+ },
+ "validation_classification_accuracy_kiosk_path": 0.9758064516129032,
+ "validation_images": 3844,
+ "ood_calibration_images": 244,
+ "validation_maxlogit_quantiles": {
+  "p1": 2.7574858617782594,
+  "p5": 3.480747866630554,
+  "p25": 4.2587631940841675,
+  "p50": 4.671871900558472,
+  "p75": 5.019561171531677,
+  "p99": 6.46196050643921
+ },
+ "ood_cal_maxlogit_quantiles": {
+  "p5": -0.4893697321414947,
+  "p25": 1.0938540399074554,
+  "p50": 2.104421615600586,
+  "p75": 3.334130346775055,
+  "p95": 4.127168273925781
+ },
+ "model_sha256": "0774ca4aadab930086ade370234919a69cf35c8a22844355f78a20a194e0f08e"
+}

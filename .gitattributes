@@ -1,0 +1,13 @@
+*.sh text eol=lf
+*.py text eol=lf
+# Generated OTA publication folder: committed byte-for-byte (the build writes LF), so RELEASE_MANIFEST.json hashes equal what kiosks download
+AGRILENS_RaspberryPi/** -text
+*.bat text eol=crlf
+# Evidence and release artefacts whose SHA-256 is recorded elsewhere: stored byte-for-byte (no line-ending conversion)
+training/evaluation/calibration_1.0.0/** -text
+training/evaluation/release_eval_1.0.0/** -text
+training/reports/** -text
+deployment/release_manifests/** -text
+deployment/rollback/** -text
+models/** -text
+tests/regression/baseline/legacy_4.9.4/** -text

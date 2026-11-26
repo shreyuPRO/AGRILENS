@@ -1,0 +1,43 @@
+{
+ "models": [
+  {
+   "id": "AGRILENS-MULTICROP 1.0.0",
+   "role": "release model of AGRILENS 5.0.0 and 5.1.0 (CR-0001); replaced by 1.1.0 in 5.2.0; fleet rollback target model for a release above 5.2.0",
+   "path": "models/candidates/agrilens-multicrop-1.0.0/",
+   "sha256": "776d08ac669d0ea8874a458bfb6ea2657c5d40525d30021c7c8c1204d520332b",
+   "bytes": 10067999,
+   "classes": 24,
+   "class_order": "identical to the 4.9.4 labels.txt",
+   "dataset": "AGL-MULTICROP-MD 1.0.0",
+   "training_run": "multicrop1_R2_s42 (selected by training/configurations/SELECTION_RULE.md; see training/reports/agrilens-multicrop-1.0.0/SELECTION.json)",
+   "gate_calibration": "training/evaluation/calibration_1.0.0/FROZEN_GATE_CALIBRATION.json (confidence 0.40, margin 0.12, ood_logit 2.10)",
+   "promotion": "move to models/production/ only after release approval"
+  },
+  {
+   "id": "AGRILENS-MULTICROP 1.1.0",
+   "role": "release model of AGRILENS 5.2.0 (published to GitHub main 2026-11-19, CR-0008): webcam-style augmentation; same architecture, 24 classes and class order as 1.0.0. Raspberry Pi 5 / C270 validation pending",
+   "path": "models/candidates/agrilens-multicrop-1.1.0/",
+   "sha256": "0774ca4aadab930086ade370234919a69cf35c8a22844355f78a20a194e0f08e",
+   "bytes": 10067999,
+   "classes": 24,
+   "class_order": "identical to the 1.0.0 / 4.9.4 labels.txt",
+   "dataset": "AGL-MULTICROP-MD 1.0.0",
+   "training_run": "multicrop11_R2w_s42 (selected on validation by SELECTION_RULE; see SELECTION.json in the candidate folder; trained by Model_Trainer_Program)",
+   "gate_calibration": "calibration/FROZEN_GATE_CALIBRATION.json in the candidate folder (confidence 0.40, margin 0.12, ood_logit 2.90)",
+   "comparison_with_1.0.0": "comparison/COMPARISON.md in the candidate folder",
+   "promotion": "released from models/candidates/ (as 1.0.0 was); move to models/production/ after Raspberry Pi 5 / C270 validation"
+  },
+  {
+   "id": "AGRILENS-24CLASS 4.9.4",
+   "role": "previous production model (AGRILENS 4.9.4); fleet rollback target via the prepared release AGRILENS-5.0.1-rollback",
+   "path": "models/production/agrilens-24class-4.9.4/",
+   "sha256": "0b5bb7fb3916a7c1138f90cfc9abfdc130f06495a34282d474e52718b072ff80"
+  },
+  {
+   "id": "mango5_exp001 B_partial_ft_s43",
+   "role": "experimental five-class Mango candidate; comparison only; not part of 5.0.0",
+   "path": "models/candidates/mango5-exp001/CANDIDATE_POINTER.json",
+   "sha256": "a241d91c8b06352f3185343dd0371680e4c4f6c6c1257b151dc3c9d775e55aba"
+  }
+ ]
+}

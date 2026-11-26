@@ -1,0 +1,11 @@
+{
+ "licences_by_source": {
+  "PLANTVILLAGE": "CC BY-SA 3.0 (PlantVillage; attribution and share-alike)",
+  "PP2020": "Plant Pathology 2020 (FGVC7) Kaggle competition data; terms not verified",
+  "MANGOLEAFBD": "CC BY-NC 3.0 (non-commercial)",
+  "SAR25": "CC BY 4.0",
+  "ABCGMP": "CC BY 4.0 per v2 record (local v1 unverified); overlaps MangoLeafBD images",
+  "LEGACY": "CC BY 4.0 per record; derivation from MangoLeafBD suspected"
+ },
+ "flag": "MangoLeafBD is non-commercial; the PlantVillage licence requires share-alike for derivatives. Not a legal review."
+}

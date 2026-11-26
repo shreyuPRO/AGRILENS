@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "timestamp_utc": "2026-11-17T12:47:56.984025+00:00",
+  "host": "fAIyaz-AMD",
+  "device_model": null,
+  "valid_for_pi5_reporting": false,
+  "python": "3.13.14",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "note": "",
+  "args": {
+    "app_path": "AGRILENS_RaspberryPi\\main.py",
+    "model": "models\\production\\agrilens-24class-4.9.4\\agrilens.onnx",
+    "labels": "models\\production\\agrilens-24class-4.9.4\\labels.txt",
+    "samples_dir": "AGRILENS_RaspberryPi\\diagnosis_samples",
+    "raw_session": false,
+    "load_runs": 5,
+    "warmup": 3,
+    "runs": 50,
+    "soak_seconds": 0,
+    "idle_seconds": 10,
+    "note": "",
+    "out": "training\\reports\\agrilens-multicrop-1.0.0\\DESKTOP_LATENCY_prod494.json"
+  },
+  "throttled_before": null,
+  "governor": null,
+  "onnxruntime": "1.32.0",
+  "numpy": "2.5.5",
+  "idle": {
+    "sys_cpu_pct_mean": null,
+    "temp_c_mean": null
+  },
+  "sample_count": 24,
+  "model_load_ms": {
+    "first": 44.62970000167843,
+    "all": [
+      44.62970000167843,
+      38.601899999775924,
+      40.33790000539739,
+      36.81510000023991,
+      39.22449999663513
+    ],
+    "later_median": 39.22449999663513
+  },
+  "label_count": 24,
+  "inference_ms": {
+    "n": 50,
+    "mean": 59.08024999924237,
+    "median": 21.643600004608743,
+    "p95": 254.77569999929983,
+    "p99": 261.3733000034699,
+    "min": 16.453899996122345,
+    "max": 261.3733000034699
+  },
+  "memory_kb": {
+    "rss_at_start": null,
+    "rss_after_load": null,
+    "rss_end": null,
+    "peak_rss_vmhwm": null,
+    "rss_trend_kb_per_min": null
+  },
+  "cpu": {
+    "process_core_pct_mean": 246.15374366956107,
+    "process_core_pct_max": 359.5064871955558,
+    "note_process": "100 = one fully used core; Pi 5 has 4 cores (max 400)",
+    "system_pct_mean": null,
+    "system_pct_max": null
+  },
+  "thermal": {
+    "temp_c_max": null,
+    "temp_c_end": null,
+    "cpu_khz_min": null,
+    "cpu_khz_max": null,
+    "throttled_after": null,
+    "note": "get_throttled bit 0x4/0x40000 = throttled now/occurred; 0x1/0x10000 = under-voltage"
+  }
+}

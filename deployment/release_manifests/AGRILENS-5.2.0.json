@@ -1,0 +1,152 @@
+{
+ "release": "AGRILENS-5.2.0",
+ "app_version": "5.2.0",
+ "build_timestamp": "2026-11-19 08:19 (development build)",
+ "model": {
+  "id": "AGRILENS-MULTICROP",
+  "version": "1.1.0",
+  "sha256": "0774ca4aadab930086ade370234919a69cf35c8a22844355f78a20a194e0f08e",
+  "bytes": 10067999,
+  "manifest": "models/candidates/agrilens-multicrop-1.1.0/MODEL_MANIFEST.json"
+ },
+ "dataset": {
+  "id_version": "AGL-MULTICROP-MD 1.0.0",
+  "freeze_checksums_sha256": "12449a5caf1bfc736a9be1a83fa71f603b29045b48eaa7db82b0bffd2e5f8c0a"
+ },
+ "device_package": {
+  "path": "AGRILENS_RaspberryPi/",
+  "files": 38,
+  "SHA256SUMS_sha256": "2333e62418d511c9bf70e5613a0a59af537d9ac4e7b12ea438d6819cd1b7e28b",
+  "RELEASE_MANIFEST_sha256": "cdf962a046078f716325e96c89d12cefed7ff3f349d5354d9767eaefa6e68d33",
+  "main_py_sha256": "40d11a68289cd94450282d73d5eb83b6da122f692262efbcda1fb10787b9f91d",
+  "ota_files_fetched_by_devices": [
+   "main.py",
+   "labels.txt",
+   "logos/agrilens_logo.jpg",
+   "logos/gundecha_logo.png",
+   "HOW_TO_RUN_ON_RASPBERRY_PI.md",
+   "setup_rpi.sh",
+   "run_agrilens.sh",
+   "ota_update.sh",
+   "setup_remote_ota.sh",
+   "rollback.sh",
+   "agrilens.onnx"
+  ]
+ },
+ "gate_calibration": {
+  "file": "models/candidates/agrilens-multicrop-1.1.0/calibration/FROZEN_GATE_CALIBRATION.json",
+  "sha256": "8182bd8a9e9a317652d614c17378a3b2f94d3b590af973d8a0d5ed5955e8c6e7",
+  "confidence": 0.4,
+  "margin": 0.12,
+  "ood_logit": 2.9
+ },
+ "release_evaluation": {
+  "kind": "comparison with the previous release model (compare_models.py; no run-once release evaluation for this model)",
+  "file": "models/candidates/agrilens-multicrop-1.1.0/comparison/comparison.json",
+  "sha256": "678acc2b44c5a30edf1dc31347dc3954022e6a09695a43d8dde679b0c540053b",
+  "summary": {
+   "val": {
+    "1.0.0": {
+     "top1_accuracy": 0.9682622268470343,
+     "macro_f1": 0.9655813807880603,
+     "correct_and_accepted": 0.9630593132154006,
+     "rejected_unknown": 0.008064516129032258,
+     "low_confidence": 0.00026014568158168577,
+     "wrong_but_accepted": 0.02861602497398543
+    },
+    "1.1.0": {
+     "top1_accuracy": 0.9758064516129032,
+     "macro_f1": 0.9737369203842636,
+     "correct_and_accepted": 0.9654006243496358,
+     "rejected_unknown": 0.014568158168574402,
+     "low_confidence": 0.0,
+     "wrong_but_accepted": 0.020031217481789803
+    }
+   },
+   "val_c270_proxy": {
+    "1.0.0": {
+     "top1_accuracy": 0.8577003121748179,
+     "macro_f1": 0.8693274504705982,
+     "correct_and_accepted": 0.812955254942768,
+     "rejected_unknown": 0.09625390218522373,
+     "low_confidence": 0.0015608740894901144,
+     "wrong_but_accepted": 0.08922996878251821
+    },
+    "1.1.0": {
+     "top1_accuracy": 0.964360041623309,
+     "macro_f1": 0.9570794472847535,
+     "correct_and_accepted": 0.951092611862643,
+     "rejected_unknown": 0.02133194588969823,
+     "low_confidence": 0.0,
+     "wrong_but_accepted": 0.027575442247658687
+    }
+   },
+   "test_known_device": {
+    "1.0.0": {
+     "top1_accuracy": 0.9585535465924896,
+     "macro_f1": 0.9269950268212156,
+     "correct_and_accepted": 0.9518776077885953,
+     "rejected_unknown": 0.015855354659248956,
+     "low_confidence": 0.0,
+     "wrong_but_accepted": 0.03226703755215577
+    },
+    "1.1.0": {
+     "top1_accuracy": 0.9744089012517385,
+     "macro_f1": 0.9609591592610803,
+     "correct_and_accepted": 0.9660639777468707,
+     "rejected_unknown": 0.015299026425591099,
+     "low_confidence": 0.0,
+     "wrong_but_accepted": 0.018636995827538246
+    }
+   },
+   "test_heldout_device": {
+    "1.0.0": {
+     "top1_accuracy": 0.8676923076923077,
+     "macro_f1": 0.6142262895174708,
+     "correct_and_accepted": 0.8215384615384616,
+     "rejected_unknown": 0.05846153846153846,
+     "low_confidence": 0.0,
+     "wrong_but_accepted": 0.12
+    },
+    "1.1.0": {
+     "top1_accuracy": 0.9692307692307692,
+     "macro_f1": 0.7587552742616034,
+     "correct_and_accepted": 0.8984615384615384,
+     "rejected_unknown": 0.08307692307692308,
+     "low_confidence": 0.0,
+     "wrong_but_accepted": 0.018461538461538463
+    }
+   },
+   "ood_eval": {
+    "1.0.0": {
+     "accepted_rate": 0.3551020408163265,
+     "unknown_rate": 0.6448979591836734
+    },
+    "1.1.0": {
+     "accepted_rate": 0.3346938775510204,
+     "unknown_rate": 0.6653061224489796
+    }
+   }
+  }
+ },
+ "automated_tests": {
+  "tests": 192,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "passed": 192
+ },
+ "rollback_release": {
+  "path": "deployment/rollback/AGRILENS-5.0.1-rollback/",
+  "SHA256SUMS_sha256": "8d7cf8c32206574693da8ef5e9c0a538e3c52444887820eb149f2974058319ff",
+  "note": "kiosks on 5.1.0 or later refuse 5.0.1 as a downgrade; single-kiosk rollback.sh restores the previous version"
+ },
+ "status": {
+  "published": false,
+  "deployed": false,
+  "raspberry_pi_validation": "pending",
+  "c270_field_validation": "pending",
+  "expert_label_review": "pending",
+  "release_criteria": "not evaluated against C1-C9 (comparison only)"
+ }
+}

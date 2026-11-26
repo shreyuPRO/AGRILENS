@@ -1,0 +1,9 @@
+# Development and test tools. Not installed on the Raspberry Pi kiosk.
+# Runtime packages (same minimums as the kiosk's requirements.txt; Phase B points this at the root requirements.txt)
+pillow>=10.0.0
+numpy>=1.26.0
+onnxruntime>=1.18.0
+opencv-python>=4.8.0
+# Test tools
+pytest>=8.0
+ruff>=0.5

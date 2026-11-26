@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "AGRILENS B: documentation obligations",
+      "trigger": "UserPromptSubmit",
+      "description": "On every prompt, lists the documentation that must be verified or updated for uncommitted functional changes (silent when there are none).",
+      "action": {
+        "type": "command",
+        "command": "python -c \"import os,subprocess,sys;r=subprocess.run(['git','rev-parse','--show-toplevel'],capture_output=True,text=True).stdout.strip();t=os.path.join(r,'tools','governance','agl_governance.py');os.path.exists(t) and subprocess.run([sys.executable,t,'docs','--hook'],cwd=r);sys.exit(0)\"",
+        "timeout": 60
+      }
+    }
+  ]
+}

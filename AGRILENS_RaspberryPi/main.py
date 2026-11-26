@@ -3,7 +3,7 @@
 AGRILENS - AI Plant Health & Disease Diagnosis Kiosk
 Target Runtime: Python 3.13+
 Hardware: Raspberry Pi 5 (8GB) + 7" Capacitive Touch Display + USB Webcam
-Model: MobileNetV4 (ONNX) - 98.31% Accuracy
+Model: AGRILENS-MULTICROP (MobileNetV4-Conv-Small ONNX, 24 classes); see MODEL_* constants and models/ manifests
 Features:
 - Separate [CAPTURE] / [RETAKE] and [DIAGNOSE] buttons
 - Integrated Leaf Image Quality AI (Sharpness, Lighting & Foliage Presence check)
@@ -114,11 +114,7 @@ except ImportError:
 try:
     import cv2
 except ImportError:
-    _auto_install_package("cv2", "opencv-python")
-    try:
-        import cv2
-    except ImportError:
-        cv2 = None
+    cv2 = None
 
 # =============================================================================
 # 1. COLOR THEME (Dark Theme with Green, White & Red Accents)
@@ -154,8 +150,57 @@ WHITE_BTN   = "#ffffff"     # High-contrast white buttons
 FONT = "Segoe UI" if platform.system() == "Windows" else "DejaVu Sans"
 
 # Application Version & Build Information
-APP_VERSION = "4.2.0"
-BUILD_TIMESTAMP = "2026-11-01 07:12:32 IST"
+APP_VERSION = "5.4.0"
+BUILD_TIMESTAMP = "2026-11-19 15:41 (development build)"
+MODEL_SHA256 = "0774ca4aadab930086ade370234919a69cf35c8a22844355f78a20a194e0f08e"
+# Model identity (independent of APP_VERSION). MODEL_SHA256 is verified against the model file by deployment/packaging/build_device_package.py.
+MODEL_ID = "AGRILENS-MULTICROP"
+MODEL_VERSION = "1.1.0"
+MODEL_NUM_CLASSES = 24
+DATASET_VERSION = "AGL-MULTICROP-MD 1.0.0"
+OTA_RELEASE_ID = "AGRILENS-5.4.0"
+# Rejection-gate calibration of the model above, set on validation data only (training/evaluation/). Used only when the loaded model matches MODEL_SHA256.
+MODEL_CALIBRATION_CONFIDENCE = 0.40
+MODEL_CALIBRATION_MARGIN = 0.12
+MODEL_CALIBRATION_OOD_LOGIT = 2.90
+OTA_REPO_RAW_BASE = "https://raw.githubusercontent.com/faiyaze04/AGRILENS/main/AGRILENS_RaspberryPi"
+
+
+def _parse_version_tuple(v_str):
+    """Parses a semantic version string like '4.8.2' into a comparable integer tuple (4, 8, 2)."""
+    try:
+        clean = str(v_str or "").strip().lstrip("vV")
+        parts = []
+        for p in clean.split("."):
+            num = "".join(ch for ch in p if ch.isdigit())
+            parts.append(int(num) if num else 0)
+        while len(parts) < 3:
+            parts.append(0)
+        return tuple(parts[:3])
+    except Exception:
+        return (0, 0, 0)
+
+
+def _extract_const_from_code(text_src, const_name):
+    """Extracts a top-level string constant (e.g. APP_VERSION or MODEL_SHA256) from main.py source."""
+    for line in str(text_src or "").splitlines():
+        s = line.strip()
+        if s.startswith(const_name) and "=" in s:
+            lhs, rhs = s.split("=", 1)
+            if lhs.strip() == const_name:
+                val = rhs.split("#", 1)[0].strip().strip('"').strip("'")
+                if val:
+                    return val
+    return ""
+
+
+def _extract_version_from_code(text_src):
+    """Extracts APP_VERSION = 'X.Y.Z' from a main.py source string."""
+    return _extract_const_from_code(text_src, "APP_VERSION") or "0.0.0"
+
+# Startup Splash & Inactivity Power-Save Timers
+STARTUP_LOGO_SECONDS = 5.0
+INACTIVITY_TIMEOUT_SECONDS = 180.0  # 3 minutes of inactivity before screensaver
 
 # =============================================================================
 # 2. PATH DISCOVERY & SETTINGS
@@ -183,6 +228,28 @@ MODEL_PATH = find_file("agrilens.onnx")
 LABELS_PATH = find_file("labels.txt")
 
 APP_BASE_DIR = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
+LOGOS_DIR = os.path.join(APP_BASE_DIR, "logos")
+CANDIDATE_LOGO_DIRS = [
+    LOGOS_DIR,
+    os.path.join(os.getcwd(), "logos"),
+    os.path.join(os.path.dirname(APP_BASE_DIR), "logos"),
+]
+
+
+def find_logo_file(filename):
+    """Resolves logo images exclusively from the dedicated logos/ folder."""
+    try:
+        os.makedirs(LOGOS_DIR, exist_ok=True)
+    except Exception:
+        pass
+    for d in CANDIDATE_LOGO_DIRS:
+        if d and os.path.exists(d):
+            p = os.path.join(d, filename)
+            if os.path.exists(p):
+                return p
+    return os.path.join(LOGOS_DIR, filename)
+
+
 DIAGNOSIS_SAMPLES_DIR = os.path.join(APP_BASE_DIR, "diagnosis_samples")
 DIAGNOSIS_SPECIES_FOLDERS = ("Apple", "Mango", "Potato", "Tomato")
 
@@ -197,11 +264,11 @@ def ensure_diagnosis_samples_dir():
         pass
     return DIAGNOSIS_SAMPLES_DIR
 
-# Calibrated confidence & Out-Of-Distribution (OOD) rejection thresholds
-CONFIDENCE_THRESHOLD = 0.50  # Minimum positive identification threshold (50%)
-OOD_MARGIN_THRESHOLD = 0.18  # Minimum gap between 1st and 2nd class
-OOD_LOGIT_THRESHOLD  = 2.00  # Minimum raw logit activation for supported crops
-SHARPNESS_MIN_THRESHOLD = 35.0  # Minimum spatial Laplacian focus sharpness variance
+# Calibrated confidence & Out-Of-Distribution (OOD) rejection thresholds (Tuned for Mobile Phone Screen & Field Leaves)
+CONFIDENCE_THRESHOLD = 0.40  # Minimum positive identification threshold (40%)
+OOD_MARGIN_THRESHOLD = 0.12  # Minimum gap between 1st and 2nd class (12%)
+OOD_LOGIT_THRESHOLD  = 1.40  # Minimum raw logit activation for supported crops
+SHARPNESS_MIN_THRESHOLD = 25.0  # Minimum spatial Laplacian focus sharpness variance
 
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kiosk_config.json") if "__file__" in globals() else "kiosk_config.json"
 USER_CONFIG_PATH = os.path.expanduser("~/.agrilens_kiosk_config.json")
@@ -220,7 +287,36 @@ DEFAULT_CONFIG = {
     "cam_flip_v": False,
     "cam_auto_exp": True,
     "cam_auto_wb": True,
+    "cam_resolution": "1280x720",
+    "history_enabled": True,
+    "history_max_images": 5000,
+    "history_sync_enabled": True,
+    "history_sync_remote": "agrilens_onedrive",
+    "history_sync_path": "AGRILENS_Kiosk_History",
+    "history_sync_minutes": 30,
+    "language": "EN",
 }
+# OneDrive upload of the diagnosis history (since 5.4.0) through rclone. The kiosk only calls "rclone copy"; the OneDrive sign-in lives in
+# rclone's own configuration (~/.config/rclone/rclone.conf), never in this application. Nothing happens until that remote exists.
+HISTORY_SYNC_LOG = os.path.expanduser("~/AGRILENS_history_sync.log")
+HISTORY_SYNC_FIRST_DELAY_S = 120   # first upload attempt after kiosk start
+# Diagnosis history (since 5.3.0): every DIAGNOSE NOW stores the diagnosed (cropped) leaf image and a log record outside the
+# application folder, so OTA updates and rollbacks never touch it. AGRILENS_HISTORY_DIR overrides the location (tests).
+HISTORY_DIR = os.environ.get("AGRILENS_HISTORY_DIR") or os.path.expanduser("~/AGRILENS_history")
+HISTORY_MIN_FREE_MB = 300        # no image is written when less free disk space than this is left
+# Capture resolutions the kiosk may request, highest first. 1280x720 is the Logitech C270 maximum;
+# 640x480 is the fallback (and the 5.0.0 behaviour) when the camera cannot deliver the requested mode.
+CAMERA_RESOLUTIONS = ("1280x720", "640x480")
+CAMERA_FALLBACK_RESOLUTION = (640, 480)
+
+
+def parse_camera_resolution(value):
+    """Returns (width, height) for a supported 'WxH' string, else the default resolution."""
+    text = str(value).strip().lower() if value is not None else ""
+    if text not in CAMERA_RESOLUTIONS:
+        text = DEFAULT_CONFIG["cam_resolution"]
+    w, h = text.split("x")
+    return int(w), int(h)
 
 def _clamp_num(val, default, lo, hi, as_int=False):
     try:
@@ -229,6 +325,47 @@ def _clamp_num(val, default, lo, hi, as_int=False):
         return int(round(v)) if as_int else v
     except Exception:
         return int(default) if as_int else float(default)
+
+
+THRESHOLD_KEYS = ("confidence_threshold", "ood_margin", "ood_logit")
+
+
+def file_sha256(path):
+    """SHA-256 of a file, or "" if it cannot be read."""
+    try:
+        import hashlib
+        h = hashlib.sha256()
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                h.update(chunk)
+        return h.hexdigest().lower()
+    except Exception:
+        return ""
+
+
+def resolve_gate_thresholds(cfg, model_sha256):
+    """
+    Chooses the rejection-gate thresholds for the model that is actually loaded.
+    1. Thresholds saved in the kiosk configuration are used only if they were saved for this model (calibration_model_sha256 matches).
+    2. Otherwise, if the loaded model is the release model (MODEL_SHA256), its embedded calibration is used.
+    3. Otherwise (unrecognised model file) the generic code defaults are used.
+    Returns (dict of the three thresholds, human-readable source).
+    """
+    sha = str(model_sha256 or "").lower()
+    saved_for = str((cfg or {}).get("calibration_model_sha256", "") or "").lower()
+    if sha and saved_for == sha and all(k in (cfg or {}) for k in THRESHOLD_KEYS):
+        th = {k: float(cfg[k]) for k in THRESHOLD_KEYS}
+        src = "saved settings for this model"
+    elif sha and sha == str(MODEL_SHA256).lower():
+        th = {"confidence_threshold": MODEL_CALIBRATION_CONFIDENCE, "ood_margin": MODEL_CALIBRATION_MARGIN, "ood_logit": MODEL_CALIBRATION_OOD_LOGIT}
+        src = f"calibration of {MODEL_ID} {MODEL_VERSION}"
+    else:
+        th = {"confidence_threshold": CONFIDENCE_THRESHOLD, "ood_margin": OOD_MARGIN_THRESHOLD, "ood_logit": OOD_LOGIT_THRESHOLD}
+        src = "generic defaults (model file not recognised)"
+    th["confidence_threshold"] = _clamp_num(th["confidence_threshold"], CONFIDENCE_THRESHOLD, 0.30, 0.95)
+    th["ood_margin"] = _clamp_num(th["ood_margin"], OOD_MARGIN_THRESHOLD, 0.10, 0.60)
+    th["ood_logit"] = _clamp_num(th["ood_logit"], OOD_LOGIT_THRESHOLD, 1.00, 6.50)
+    return th, src
 
 
 def load_kiosk_config():
@@ -249,8 +386,8 @@ def load_kiosk_config():
     cfg["ood_logit"] = _clamp_num(cfg.get("ood_logit"), OOD_LOGIT_THRESHOLD, 1.00, 6.50)
     cfg["sharpness_min"] = _clamp_num(cfg.get("sharpness_min"), SHARPNESS_MIN_THRESHOLD, 20.0, 120.0)
 
-    # Auto-migrate legacy overly-strict thresholds (0.65 / 0.30 / 4.20) in ~/.agrilens_kiosk_config.json
-    if cfg["ood_logit"] >= 4.0 and cfg["confidence_threshold"] >= 0.64:
+    # Auto-migrate legacy stricter thresholds in ~/.agrilens_kiosk_config.json to mobile-screen-friendly defaults
+    if cfg["ood_logit"] >= 1.80 and cfg["confidence_threshold"] >= 0.48:
         cfg["confidence_threshold"] = CONFIDENCE_THRESHOLD
         cfg["ood_margin"] = OOD_MARGIN_THRESHOLD
         cfg["ood_logit"] = OOD_LOGIT_THRESHOLD
@@ -265,6 +402,18 @@ def load_kiosk_config():
     for bkey, bdef in (("cam_flip_h", False), ("cam_flip_v", False), ("cam_auto_exp", True), ("cam_auto_wb", True)):
         val = cfg.get(bkey, bdef)
         cfg[bkey] = val if isinstance(val, bool) else bdef
+    cfg["cam_resolution"] = "%dx%d" % parse_camera_resolution(cfg.get("cam_resolution"))
+    hv = cfg.get("history_enabled", True)
+    cfg["history_enabled"] = hv if isinstance(hv, bool) else True
+    cfg["history_max_images"] = _clamp_num(cfg.get("history_max_images"), 5000, 0, 100000, as_int=True)
+    sv = cfg.get("history_sync_enabled", True)
+    cfg["history_sync_enabled"] = sv if isinstance(sv, bool) else True
+    rem = str(cfg.get("history_sync_remote") or "").strip().rstrip(":")
+    cfg["history_sync_remote"] = rem if rem and all(ch.isalnum() or ch in "_-." for ch in rem) else DEFAULT_CONFIG["history_sync_remote"]
+    sp = str(cfg.get("history_sync_path") or "").replace("\\", "/").strip().strip("/")
+    cfg["history_sync_path"] = sp if (sp and ".." not in sp.split("/") and not sp.startswith("-")) else DEFAULT_CONFIG["history_sync_path"]
+    cfg["history_sync_minutes"] = _clamp_num(cfg.get("history_sync_minutes"), 30, 5, 1440, as_int=True)
+    cfg["language"] = "HI" if str(cfg.get("language", "EN")).upper() == "HI" else "EN"
     return cfg
 
 def save_kiosk_config(cfg):
@@ -291,12 +440,36 @@ def ensure_rpi_autostart():
     """
     Automatically registers AGRILENS to launch immediately on Raspberry Pi boot
     (zero-delay XDG + Wayfire/Labwc compositor autostart) to skip showing the home screen.
+    If launched from a removable USB pendrive (/media or /mnt), automatically syncs
+    the latest package to ~/AGRILENS_RaspberryPi on the Raspberry Pi SD card.
     """
     if platform.system() != "Linux" or "__file__" not in globals():
         return
     try:
+        import shutil
         script_path = os.path.abspath(__file__)
         script_dir = os.path.dirname(script_path)
+        if script_dir.startswith("/media/") or script_dir.startswith("/mnt/"):
+            home_target = os.path.expanduser("~/AGRILENS_RaspberryPi")
+            try:
+                installed_main = os.path.join(home_target, "main.py")
+                allow_copy = True
+                if os.path.exists(installed_main):
+                    with open(installed_main, "r", encoding="utf-8", errors="replace") as f_inst:
+                        inst_ver = _extract_version_from_code(f_inst.read())
+                    if _parse_version_tuple(APP_VERSION) < _parse_version_tuple(inst_ver):
+                        # Never overwrite a newer installed version with an older USB copy
+                        allow_copy = False
+                if allow_copy:
+                    shutil.copytree(script_dir, home_target, dirs_exist_ok=True)
+                    # Remove legacy assets/ directory on Raspberry Pi SD card if present
+                    legacy_assets = os.path.join(home_target, "assets")
+                    if os.path.exists(legacy_assets):
+                        shutil.rmtree(legacy_assets, ignore_errors=True)
+                script_dir = home_target
+                script_path = os.path.join(home_target, "main.py")
+            except Exception:
+                pass
         py_exe = sys.executable or "/usr/bin/python3"
         launch_cmd = f"/bin/sh -c \"cd '{script_dir}' && '{py_exe}' '{script_path}'\""
 
@@ -350,12 +523,64 @@ PREVIEW_FPS = 25
 RESAMPLE = RESAMPLE_BILINEAR
 
 # =============================================================================
-# 3. FARMER RECOMMENDATIONS DATABASE
+# 3. FARMER RECOMMENDATIONS DATABASE (Bilingual: English & Hindi)
 # =============================================================================
 DISCLAIMER = (
     "Agricultural advice only. Consult your local extension officer "
     "before applying chemical treatments."
 )
+DISCLAIMER_HI = (
+    "यह केवल कृषि परामर्श है। रासायनिक उपचार करने से पहले अपने स्थानीय "
+    "कृषि विस्तार अधिकारी से सलाह लें।"
+)
+
+CROP_HI_MAP = {
+    "apple": "सेब (Apple)",
+    "mango": "आम (Mango)",
+    "potato": "आलू (Potato)",
+    "tomato": "टमाटर (Tomato)",
+}
+
+CONDITION_HI_MAP = {
+    "healthy": "स्वस्थ पत्ती (Healthy)",
+    "rust": "रस्ट / किट्ट रोग (Rust)",
+    "scab": "स्कैब / पपड़ी रोग (Scab)",
+    "anthracnose": "एन्थ्रेक्नोज़ (Anthracnose)",
+    "bacterial canker": "जीवाणु कैंकर (Bacterial Canker)",
+    "cutting weevil": "कटिंग वीविल कीट (Cutting Weevil)",
+    "die back": "डाई-बैक रोग (Die Back)",
+    "gall midge": "गॉल मिज कीट (Gall Midge)",
+    "powdery mildew": "चूर्णिल आसिता (Powdery Mildew)",
+    "sooty mould": "सूटी मोल्ड / काली फफूंद (Sooty Mould)",
+    "early blight": "अगेती झुलसा (Early Blight)",
+    "late blight": "पछेती झुलसा (Late Blight)",
+    "bacterial spot": "जीवाणु धब्बा रोग (Bacterial Spot)",
+    "leaf mold": "पत्ती की फफूंद (Leaf Mold)",
+    "septoria leaf spot": "सेप्टोरिया पत्ती धब्बा (Septoria Leaf Spot)",
+    "spider mites two spotted spider mite": "लाल मकड़ी कीट (Spider Mites)",
+    "target spot": "टारगेट स्पॉट (Target Spot)",
+    "tomato yellowleaf curl virus": "पीला पत्ता मरोड़ वायरस (Yellow Leaf Curl Virus)",
+    "tomato mosaic virus": "मोज़ेक वायरस (Mosaic Virus)",
+}
+
+
+def translate_crop_hi(crop_name):
+    if not crop_name:
+        return ""
+    return CROP_HI_MAP.get(str(crop_name).strip().lower(), str(crop_name))
+
+
+def translate_cond_hi(cond_name):
+    if not cond_name:
+        return ""
+    low = str(cond_name).strip().lower()
+    if low in CONDITION_HI_MAP:
+        return CONDITION_HI_MAP[low]
+    for k, v in CONDITION_HI_MAP.items():
+        if k in low:
+            return v
+    return str(cond_name)
+
 
 RECOMMENDATIONS = [
     (("healthy",), [
@@ -463,11 +688,124 @@ RECOMMENDATIONS = [
     ]),
 ]
 
+RECOMMENDATIONS_HI = [
+    (("healthy",), [
+        "फसल की पत्ती पूरी तरह स्वस्थ है। किसी रासायनिक छिड़काव की आवश्यकता नहीं है।",
+        "सुबह जल्दी पौधे की जड़ में पानी दें; पत्तियों को सूखा रखें।",
+        "धब्बों या कीटों के शुरुआती लक्षणों के लिए हर सप्ताह निचली पत्तियों की जाँच करें।",
+        "खेत की मेड़ों को साफ़ रखें और गिरी हुई सूखी पत्तियों को हटा दें।",
+    ]),
+    (("scab",), [
+        "फफूंद के बीजाणुओं को रोकने के लिए संक्रमित पत्तियों को हटाकर नष्ट कर दें।",
+        "धूप और हवा के प्रवाह के लिए घनी शाखाओं की छंटाई करें।",
+        "अनुशंसित कवकनाशी (जैसे मैंकोज़ेब या कैप्टान) का छिड़काव करें।",
+        "रात के समय पत्तियों को गीला रखने वाली ऊपरी सिंचाई से बचें।",
+    ]),
+    (("black rot",), [
+        "संक्रमित हिस्से से 15 सेमी नीचे से सूखी और रोगग्रस्त टहनियों को काटें।",
+        "सभी सड़े हुए फलों और गिरी हुई संक्रमित पत्तियों को इकट्ठा करके नष्ट करें।",
+        "कली निकलने से लेकर फूल आने तक अनुमोदित सुरक्षात्मक कवकनाशी का छिड़काव करें।",
+        "प्रत्येक पेड़ की छंटाई के बाद कैंची को अल्कोहल से कीटाणुरहित करें।",
+    ]),
+    (("rust", "cedar apple rust"), [
+        "500 मीटर के दायरे में जंगली जुनिपर/देवदार की झाड़ियों की जाँच करें और हटाएं।",
+        "कली बनने और पंखुड़ी गिरने की अवस्था में अनुशंसित कवकनाशी का छिड़काव करें।",
+        "सर्दियों में रोग को फैलने से रोकने के लिए गिरी हुई पत्तियों को नष्ट करें।",
+    ]),
+    (("bacterial spot",), [
+        "धब्बेदार पत्तियों को तुरंत तोड़कर नष्ट करें; गीली फसल में काम न करें।",
+        "स्थानीय कृषि दिशानिर्देशों के अनुसार कॉपर-आधारित जीवाणुनाशक का छिड़काव करें।",
+        "पानी के छींटों से संक्रमण रोकने के लिए ड्रिप सिंचाई का उपयोग करें।",
+        "2-3 वर्षों तक गैर-सोलेनेसी फसलों के साथ फसल चक्र अपनाएं।",
+    ]),
+    (("early blight",), [
+        "निचली संक्रमित पत्तियों को काटकर जला दें या मिट्टी में दबा दें (कम्पोस्ट न बनाएं)।",
+        "मिट्टी से फफूंद के छींटे रोकने के लिए साफ़ जैविक पलवार (मल्च) बिछाएं।",
+        "अनुशंसित कवकनाशी (जैसे मैंकोज़ेब या क्लोरोथालोनिल) का छिड़काव करें।",
+        "अगले सीजन में फसल चक्र अपनाएं; आलू के बाद टमाटर न लगाएं।",
+    ]),
+    (("late blight",), [
+        "अति आवश्यक: यह संक्रामक झुलसा रोग ठंडी और नमी वाली हवा में तेज़ी से फैलता है।",
+        "गंभीर रूप से संक्रमित पौधों को तुरंत उखाड़कर नष्ट कर दें।",
+        "आस-पास के स्वस्थ पौधों को बचाने के लिए तुरंत सिस्टेमिक कवकनाशी का छिड़काव करें।",
+        "फव्वारा (स्प्रिंकलर) सिंचाई तुरंत बंद कर दें।",
+    ]),
+    (("leaf mold",), [
+        "हवा के प्रवाह के लिए पौधों के बीच की दूरी बढ़ाएं और निचली शाखाओं की छंटाई करें।",
+        "नमी कम करने के लिए खेत या पॉलीहाउस में हवा का उचित वेंटिलेशन रखें।",
+        "यदि संक्रमण बढ़ता है, तो अनुमोदित कॉपर या सल्फर कवकनाशी का छिड़काव करें।",
+    ]),
+    (("septoria",), [
+        "गोल धब्बे दिखते ही निचली संक्रमित पत्तियों को तोड़कर हटा दें।",
+        "जमीन पर पलवार (मल्च) रखें और पत्तियों के ऊपर से पानी न डालें।",
+        "7 से 10 दिनों के अंतराल पर सुरक्षात्मक कवकनाशी का छिड़काव करें।",
+    ]),
+    (("spider mite",), [
+        "पत्तियों के निचले हिस्से पर साफ़ पानी की तेज़ धार से छिड़काव करें।",
+        "हर 5-7 दिनों में नीम के तेल (Neem Oil) या कीटनाशक साबुन का छिड़काव करें।",
+        "नियमित सिंचाई बनाए रखें; लाल मकड़ी कीट सूखे और गर्म मौसम में तेजी से बढ़ते हैं।",
+    ]),
+    (("target spot",), [
+        "फफूंद के दबाव को कम करने के लिए निचली संक्रमित पत्तियों को हटा दें।",
+        "हवा के बेहतर प्रवाह के लिए पौधों को सहारा (स्टेकिंग) दें और दूरी बनाए रखें।",
+        "अनुशंसित कवकनाशी (जैसे क्लोरोथालोनिल या मैंकोज़ेब) का छिड़काव करें।",
+        "निचली पत्तियों पर मिट्टी के छींटे रोकने के लिए ड्रिप सिंचाई और मल्च का प्रयोग करें।",
+    ]),
+    (("yellow leaf curl",), [
+        "यह सफेद मक्खी (Whitefly) से फैलने वाला वायरस रोग है; संक्रमित पौधा ठीक नहीं हो सकता।",
+        "पड़ोसी पौधों को बचाने के लिए रोगग्रस्त पौधों को तुरंत उखाड़कर नष्ट करें।",
+        "सफेद मक्खी को नियंत्रित करने के लिए पीले चिपचिपे ट्रैप (Yellow Sticky Traps) लगाएं।",
+        "अगली फसल के लिए प्रमाणित रोग-प्रतिरोधी (TYLCV-resistant) किस्म के पौधे चुनें।",
+    ]),
+    (("mosaic",), [
+        "यह एक विषाणु (वायरस) जनित रोग है। संक्रमित पौधों को उखाड़कर सुरक्षित रूप से नष्ट करें।",
+        "पौधों को छूने के बाद हाथों और औजारों को साबुन और पानी से अच्छी तरह धोएं।",
+        "टमाटर की फसल के पास धूम्रपान या तंबाकू के उपयोग से सख़्त परहेज करें।",
+    ]),
+    (("anthracnose",), [
+        "सूखी टहनियों, रोगग्रस्त पत्तियों और सूखे फूलों के गुच्छों की छंटाई करें।",
+        "फूल आने से पहले और तुड़ाई के बाद कॉपर ऑक्सीक्लोराइड (0.3%) का छिड़काव करें।",
+        "पेड़ के भीतरी हिस्सों में धूप पहुँचाने के लिए घनी शाखाओं की छंटाई करें।",
+    ]),
+    (("powdery mildew",), [
+        "मंजरी निकलते समय घुलनशील सल्फर (0.2%) या हेक्साकोनाज़ोल का छिड़काव करें।",
+        "नमी कम करने के लिए घनी टहनियों की छंटाई करें।",
+        "नीचे गिरे हुए संक्रमित फूलों के गुच्छों को इकट्ठा करके जला दें।",
+    ]),
+    (("die back", "dieback"), [
+        "सूखी लकड़ी के दिखने वाले हिस्से से 8-10 सेमी नीचे से संक्रमित टहनियों को काटें।",
+        "कटे हुए हिस्सों पर तुरंत ताज़ा बोर्डो पेस्ट (Bordeaux paste) लगाएं।",
+        "अनुशंसित NPK और जिंक के साथ पेड़ का संतुलित पोषण बनाए रखें।",
+    ]),
+    (("bacterial canker",), [
+        "कैंकर वाली शाखाओं की छंटाई करें और घावों पर कॉपर स्प्रे का उपचार करें।",
+        "कॉपर ऑक्सीक्लोराइड के साथ स्ट्रेप्टोसाइक्लिन (100 ppm) का छिड़काव करें।",
+        "तेज़ हवा से पत्तियों को होने वाली रगड़ से बचाने के लिए वायुरोधक पेड़ लगाएं।",
+    ]),
+    (("sooty mo",), [
+        "यह काली फफूंद फुदका (Hoppers) या मिलीबग द्वारा छोड़े गए मीठे चिपचिपे पदार्थ पर पनपती है।",
+        "काली परत को हटाने के लिए 2% स्टार्च घोल या नीम के तेल का छिड़काव करें।",
+        "रस चूसने वाले मुख्य कीटों (मैंगो हॉपर या स्केल कीट) का उपचार करें।",
+    ]),
+    (("cutting weevil", "gall midge"), [
+        "कटी हुई या गांठ (गॉल) वाली विकृत पत्तियों को इकट्ठा करके नष्ट कर दें।",
+        "नई पत्तियां निकलते समय अनुमोदित वानस्पतिक या नीम-आधारित कीटनाशक का छिड़काव करें।",
+        "मिट्टी में छिपे प्यूपा को नष्ट करने के लिए पेड़ के नीचे की मिट्टी की जुताई करें।",
+    ]),
+]
+
 UNSURE_STEPS = [
     "Check the Image Quality rating shown below the camera view.",
     "Hold one single leaf flat and fully centered inside the green box.",
     "Make sure lighting is even and there is no harsh direct glare or shadow.",
     "Auto mode is in Beta Production. Tap 'SELECT CROP' to focus on your crop.",
+]
+
+UNSURE_STEPS_HI = [
+    "कैमरा दृश्य के नीचे दिखाई गई 'पत्ती गुणवत्ता (Image Quality)' रेटिंग की जाँच करें।",
+    "एक पत्ती को सीधा रखें और हरे बॉक्स के बिल्कुल बीच में रखें।",
+    "सुनिश्चित करें कि रोशनी समान हो और पत्ती पर सीधी चमक या गहरी छाया न हो।",
+    "बेहतर सटीकता के लिए ऊपर 'फसल चुनें' बटन दबाकर अपनी फसल निर्धारित करें।",
 ]
 
 OOD_STEPS = [
@@ -477,6 +815,13 @@ OOD_STEPS = [
     "To support this plant species, add it to the dataset and retrain the model.",
 ]
 
+OOD_STEPS_HI = [
+    "यह पत्ती समर्थित फसलों (सेब, आम, आलू, टमाटर) के लक्षणों से मेल नहीं खाती है।",
+    "अन्य पौधे (जैसे सजावटी पौधे, खरपतवार आदि) वर्तमान सूची से बाहर हैं।",
+    "यदि आप समर्थित फसल की जाँच कर रहे हैं, तो ऊपर 'फसल चुनें' दबाकर फसल लॉक करें।",
+    "केवल सेब, आम, आलू या टमाटर की स्पष्ट पत्ती को कैमरे के सामने रखें।",
+]
+
 DEFAULT_STEPS = [
     "Possible crop condition observed on this specimen.",
     "Isolate this plant to prevent potential spread to adjacent rows.",
@@ -484,12 +829,20 @@ DEFAULT_STEPS = [
     "Avoid overhead watering to minimize standing leaf moisture.",
 ]
 
-def get_recommendation(crop, condition):
+DEFAULT_STEPS_HI = [
+    "इस पत्ती के नमूने में फसल रोग के संभावित लक्षण देखे गए हैं।",
+    "संक्रमण को आस-पास के पौधों में फैलने से रोकने के लिए इस पौधे को अलग रखें।",
+    "निरीक्षण के लिए इस पत्ती के नमूने को अपने स्थानीय कृषि कार्यालय में दिखाएं।",
+    "पत्तियों पर नमी कम करने के लिए ऊपर से पानी छिड़कने से बचें।",
+]
+
+def get_recommendation(crop, condition, lang="EN"):
     text = f"{crop} {condition}".lower()
-    for keys, steps in RECOMMENDATIONS:
+    db = RECOMMENDATIONS_HI if str(lang).upper() == "HI" else RECOMMENDATIONS
+    for keys, steps in db:
         if any(k in text for k in keys):
             return steps
-    return DEFAULT_STEPS
+    return DEFAULT_STEPS_HI if str(lang).upper() == "HI" else DEFAULT_STEPS
 
 
 def parse_label(label):
@@ -509,109 +862,219 @@ def parse_label(label):
 
 
 # =============================================================================
-# 3.5. LEAF REGION DETECTION & SMART ROI EXTRACTION ENGINE
+# 3b. DIAGNOSIS HISTORY (captured leaf images + diagnosis log)
 # =============================================================================
-class LeafOutlineSegmenter:
+class DiagnosisHistory:
     """
-    Non-destructive Leaf ROI detector optimized for both real leaves and mobile screen testing:
-    - Detects foliage & leaf regions using Excess Green (ExG), HSV color saturation, and Canny edges.
-    - Rejects outer frame borders (such as mobile phone bezels or dark room edges).
-    - Preserves natural background context inside the cropped square ROI (does NOT paint #000000 black
-      masks that distort MobileNetV4 convolutional filters).
-    - Graceful fallback: If the leaf already fills the frame or no sub-region is isolated,
-      uses the complete image without alteration.
+    Stores every diagnosis outside the application folder (default ~/AGRILENS_history):
+      <YYYY-MM-DD>/<YYYYMMDD_HHMMSS_mmm>_<VERDICT>.jpg   the diagnosed (cropped) leaf image, exactly what the model saw
+      <YYYY-MM-DD>/<YYYYMMDD_HHMMSS_mmm>_<VERDICT>.json  full record: time, input, crop, camera, model, thresholds, result, quality
+      diagnosis_log.csv                                   one row per diagnosis (opens in a spreadsheet)
+    Writing happens on a background thread and never raises into the kiosk. Above max_images the oldest images and their
+    records are removed (0 = keep all); nothing is written when the disk has less than HISTORY_MIN_FREE_MB free.
     """
+    CSV_FIELDS = ["record_id", "timestamp_local", "timestamp_utc", "status", "verdict", "result", "crop", "condition",
+                  "confidence_pct", "top1_raw_pct", "margin_pct", "max_logit", "second_label", "second_pct",
+                  "input_mode", "source_file", "selected_crop", "image_file", "image_width", "image_height",
+                  "frame_width", "frame_height", "crop_box", "quality_score", "quality_rating", "camera",
+                  "gate_confidence", "gate_margin", "gate_ood_logit", "gate_source",
+                  "app_version", "model_id", "model_version", "model_sha256", "engine", "latency_ms", "language", "save_status"]
+
+    def __init__(self, base_dir=None, enabled=True, max_images=5000):
+        self.base_dir = base_dir or HISTORY_DIR
+        self.enabled = bool(enabled)
+        self.max_images = int(max_images or 0)
+        self._lock = threading.Lock()
+        self.last_error = ""
+        self.saved_count = 0
+
     @staticmethod
-    def extract_leaf(pil_image, min_area_ratio=0.06, max_area_ratio=0.65):
-        if pil_image is None:
-            return None, False, {"msg": "Camera frame not available."}
-        if np is None or cv2 is None:
-            return pil_image, False, {"msg": "OpenCV/NumPy unavailable, using complete image."}
+    def make_record_id(now=None):
+        now = now or time.time()
+        return time.strftime("%Y%m%d_%H%M%S", time.localtime(now)) + "_%03d" % int((now % 1) * 1000)
 
+    def record(self, image, meta, wait=False):
+        """Queue one diagnosis. Returns the record id (or None when history is off). wait=True writes synchronously."""
+        if not self.enabled or image is None:
+            return None
+        now = time.time()
+        rid = self.make_record_id(now)
+        meta = dict(meta or {})
+        meta.setdefault("record_id", rid)
+        meta.setdefault("timestamp_local", time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(now)) + ".%03d" % int((now % 1) * 1000))
+        meta.setdefault("timestamp_utc", time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)))
+        img = image.copy()
+        if wait:
+            self._write(img, meta, now)
+        else:
+            threading.Thread(target=self._write, args=(img, meta, now), daemon=True).start()
+        return rid
+
+    def _write(self, img, meta, now):
+        with self._lock:
+            try:
+                os.makedirs(self.base_dir, exist_ok=True)
+                try:
+                    import shutil as _sh
+                    free_mb = _sh.disk_usage(self.base_dir).free / (1024 * 1024)
+                except Exception:
+                    free_mb = None
+                day = time.strftime("%Y-%m-%d", time.localtime(now))
+                day_dir = os.path.join(self.base_dir, day)
+                os.makedirs(day_dir, exist_ok=True)
+                verdict = "".join(ch for ch in str(meta.get("verdict", "UNRATED")) if ch.isalnum() or ch == "_")[:24] or "UNRATED"
+                stem = f"{meta['record_id']}_{verdict}"
+                rel_img = f"{day}/{stem}.jpg"
+                if free_mb is not None and free_mb < HISTORY_MIN_FREE_MB:
+                    meta["save_status"] = f"image not saved: only {free_mb:.0f} MB free"
+                    meta["image_file"] = ""
+                else:
+                    img.convert("RGB").save(os.path.join(day_dir, stem + ".jpg"), "JPEG", quality=92)
+                    meta["image_file"] = rel_img
+                    meta["image_width"], meta["image_height"] = img.size
+                    meta["save_status"] = "saved"
+                with open(os.path.join(day_dir, stem + ".json"), "w", encoding="utf-8") as f:
+                    json.dump(meta, f, indent=1, ensure_ascii=False)
+                self._append_csv(meta)
+                self.saved_count += 1
+                self.last_error = ""
+                if self.max_images and self.saved_count % 25 == 1:
+                    self._prune()
+            except Exception as e:
+                self.last_error = str(e)
+                print(f"Notice: diagnosis history not written ({e})")
+
+    def _append_csv(self, meta):
+        import csv as _csv
+        path = os.path.join(self.base_dir, "diagnosis_log.csv")
+        new = not os.path.exists(path)
+        with open(path, "a", newline="", encoding="utf-8-sig" if new else "utf-8") as f:
+            w = _csv.DictWriter(f, fieldnames=self.CSV_FIELDS, extrasaction="ignore")
+            if new:
+                w.writeheader()
+            w.writerow({k: ("" if meta.get(k) is None else meta.get(k)) for k in self.CSV_FIELDS})
+
+    def _prune(self):
+        """Keeps at most max_images images: deletes the oldest image files (and their .json records) first."""
         try:
-            orig_np = np.array(pil_image.convert("RGB"))
-            h, w = orig_np.shape[:2]
-            total_area = float(w * h)
-
-            # 1. Compute foliage / leaf color mask (Excess Green + HSV green/yellow-green leaf range)
-            r = orig_np[:, :, 0].astype(np.float32)
-            g = orig_np[:, :, 1].astype(np.float32)
-            b = orig_np[:, :, 2].astype(np.float32)
-            exg = 2.0 * g - r - b
-            green_dom = g - 0.55 * r - 0.45 * b
-
-            hsv = cv2.cvtColor(orig_np, cv2.COLOR_RGB2HSV)
-            hue = hsv[:, :, 0]
-            sat = hsv[:, :, 1]
-            val = hsv[:, :, 2]
-
-            # Exclude warm skin/wood/indoor walls (Hue < 24 unless G > R) while supporting blue-lit phone screens
-            is_foliage = (
-                ((exg > 10.0) & (g > 28.0))
-                | ((green_dom > 6.0) & (g > r) & (val > 35))
-                | ((hue >= 24) & (hue <= 102) & (sat >= 32) & (val >= 30) & (val <= 248))
-            )
-            foliage_mask = np.where(is_foliage, 255, 0).astype(np.uint8)
-
-            # Zero out outer 4% border so a dark phone bezel or screen frame doesn't bridge across the image
-            bh_pad, bw_pad = max(2, int(h * 0.04)), max(2, int(w * 0.04))
-            foliage_mask[:bh_pad, :] = 0
-            foliage_mask[h - bh_pad:, :] = 0
-            foliage_mask[:, :bw_pad] = 0
-            foliage_mask[:, w - bw_pad:] = 0
-
-            kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
-            closed = cv2.morphologyEx(foliage_mask, cv2.MORPH_CLOSE, kernel_close)
-
-            contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            if not contours:
-                return pil_image, False, {"msg": "Full frame used for diagnosis.", "area_ratio": 1.0}
-
-            contours = sorted(contours, key=cv2.contourArea, reverse=True)
-            best_cnt = None
-            best_area = 0.0
-
-            for cnt in contours:
-                area = float(cv2.contourArea(cnt))
-                ratio = area / total_area
-                if ratio < min_area_ratio:
-                    continue
-                if ratio > max_area_ratio:
-                    # Leaf or screen already fills a large portion of the frame -> keep full frame intact
-                    # so multi-scale square center crops in Classifier.predict() preserve full leaf context!
-                    return pil_image, True, {
-                        "msg": f"Leaf fills frame ({ratio * 100:.1f}% area).",
-                        "area_ratio": ratio,
-                        "bbox": (0, 0, w, h)
-                    }
-                best_cnt = cnt
-                best_area = area
-                break
-
-            if best_cnt is None:
-                return pil_image, False, {"msg": "Full frame used for diagnosis.", "area_ratio": 1.0}
-
-            # Crop a clean square bounding box around the detected leaf with generous 1.45x context margin
-            # so outer leaf edges and brown/yellow necrotic lesions are never clipped off
-            bx, by, bw, bh = cv2.boundingRect(best_cnt)
-            cx = bx + bw // 2
-            cy = by + bh // 2
-            side = int(max(bw, bh) * 1.45)
-            side = max(min(w, h) // 2, min(side, min(w, h)))
-
-            x0 = max(0, min(w - side, cx - side // 2))
-            y0 = max(0, min(h - side, cy - side // 2))
-            cropped_np = orig_np[y0:y0 + side, x0:x0 + side]
-            result_pil = Image.fromarray(cropped_np)
-
-            return result_pil, True, {
-                "msg": f"Leaf ROI focused ({best_area / total_area * 100:.1f}% area).",
-                "area_ratio": best_area / total_area,
-                "bbox": (x0, y0, side, side)
-            }
-
+            imgs = sorted(glob.glob(os.path.join(self.base_dir, "????-??-??", "*.jpg")), key=lambda p: os.path.basename(p))
+            for p in imgs[:max(0, len(imgs) - self.max_images)]:
+                for q in (p, p[:-4] + ".json"):
+                    try:
+                        os.remove(q)
+                    except OSError:
+                        pass
+            for d in glob.glob(os.path.join(self.base_dir, "????-??-??")):
+                try:
+                    if not os.listdir(d):
+                        os.rmdir(d)
+                except OSError:
+                    pass
         except Exception as e:
-            return pil_image, False, {"msg": f"Full frame used ({e}).", "area_ratio": 1.0}
+            print(f"Notice: diagnosis history pruning skipped ({e})")
+
+
+class HistorySync:
+    """
+    Uploads the diagnosis history to OneDrive with rclone ("rclone copy": new and changed files only; nothing is ever deleted in the
+    cloud, so images pruned on the kiosk stay in OneDrive). Runs in a background thread: first attempt HISTORY_SYNC_FIRST_DELAY_S after
+    start, then every `minutes`. Each attempt first checks that the internet (Microsoft Graph) is reachable; offline attempts are skipped
+    quietly and the next one catches up. Does nothing until rclone is installed and the remote `remote` exists in rclone's configuration.
+    One line per attempt goes to HISTORY_SYNC_LOG (trimmed to the last 1000 lines).
+    """
+    PROBE_HOST, PROBE_PORT = "graph.microsoft.com", 443
+
+    def __init__(self, src_dir=None, remote="agrilens_onedrive", dest_path="AGRILENS_Kiosk_History", minutes=30, enabled=True, log_path=None):
+        self.src_dir = src_dir or HISTORY_DIR
+        self.remote = str(remote).rstrip(":")
+        self.dest_path = str(dest_path).strip("/")
+        self.minutes = max(5, int(minutes or 30))
+        self.enabled = bool(enabled)
+        self.log_path = log_path or HISTORY_SYNC_LOG
+        self.status = "not started"
+        self.last_success = ""
+        self._busy = threading.Lock()
+        self._stop = threading.Event()
+
+    def target(self):
+        return f"{self.remote}:{self.dest_path}"
+
+    def command(self, rclone="rclone"):
+        return [rclone, "copy", self.src_dir, self.target(), "--min-age", "20s", "--transfers", "2", "--checkers", "4",
+                "--retries", "3", "--low-level-retries", "5", "--contimeout", "15s", "--timeout", "60s", "--exclude", ".*", "--stats-one-line", "-q"]
+
+    def _online(self):
+        import socket
+        try:
+            with socket.create_connection((self.PROBE_HOST, self.PROBE_PORT), timeout=5):
+                return True
+        except OSError:
+            return False
+
+    def _log(self, msg):
+        line = time.strftime("%Y-%m-%d %H:%M:%S") + "  " + msg
+        try:
+            lines = []
+            if os.path.exists(self.log_path):
+                with open(self.log_path, encoding="utf-8", errors="replace") as f:
+                    lines = f.read().splitlines()[-999:]
+            lines.append(line)
+            with open(self.log_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(lines) + "\n")
+        except Exception:
+            pass
+
+    def run_once(self):
+        """One upload attempt. Returns a short status string (also stored in self.status and logged)."""
+        if not self.enabled:
+            return "disabled"
+        if not self._busy.acquire(blocking=False):
+            return "busy"
+        try:
+            import shutil as _sh
+            rc = _sh.which("rclone")
+            if not rc:
+                st = "rclone not installed"
+            elif not os.path.isdir(self.src_dir):
+                st = "no history yet"
+            else:
+                rem = subprocess.run([rc, "listremotes"], capture_output=True, text=True, timeout=30)
+                if (self.remote + ":") not in rem.stdout.split():
+                    st = f"remote '{self.remote}' not configured"
+                elif not self._online():
+                    st = "offline (skipped)"
+                else:
+                    t0 = time.time()
+                    r = subprocess.run(self.command(rc), capture_output=True, text=True, timeout=1800)
+                    if r.returncode == 0:
+                        self.last_success = time.strftime("%Y-%m-%d %H:%M:%S")
+                        st = f"uploaded to {self.target()} in {time.time() - t0:.0f} s"
+                    else:
+                        err = (r.stderr or r.stdout or "").strip().splitlines()
+                        st = f"rclone failed (exit {r.returncode}): {err[-1][:200] if err else 'no message'}"
+        except Exception as e:
+            st = f"error: {e}"
+        finally:
+            self._busy.release()
+        self.status = st
+        self._log(st)
+        return st
+
+    def start(self):
+        if not self.enabled:
+            return
+
+        def loop():
+            if self._stop.wait(HISTORY_SYNC_FIRST_DELAY_S):
+                return
+            while not self._stop.is_set():
+                self.run_once()
+                if self._stop.wait(self.minutes * 60):
+                    return
+        threading.Thread(target=loop, daemon=True).start()
+
+    def stop(self):
+        self._stop.set()
 
 
 # =============================================================================
@@ -625,9 +1088,15 @@ class LeafQualityAI:
     3. Foliage & Leaf Presence (Excess Green Index & central leaf coverage check)
     """
     @staticmethod
-    def assess(pil_image, min_sharpness=55.0):
+    def assess(pil_image, min_sharpness=55.0, lang="EN"):
+        is_hi = (str(lang).upper() == "HI")
         if np is None or pil_image is None:
-            return 80, "GOOD", "Image Quality: Acceptable", GREEN_ACCENT
+            return (
+                80,
+                "GOOD",
+                "पत्ती गुणवत्ता: उपयुक्त" if is_hi else "Image Quality: Acceptable",
+                GREEN_ACCENT,
+            )
 
         try:
             # Resize thumbnail for fast 1ms evaluation
@@ -639,15 +1108,15 @@ class LeafQualityAI:
             gray = 0.299 * r + 0.587 * g + 0.114 * b
             mean_lum = float(np.mean(gray))
 
-            if mean_lum < 42.0:
+            if mean_lum < 36.0:
                 exposure_score = max(10, int(mean_lum * 1.5))
-                lighting_status = "Too Dark (Low Light)"
-            elif mean_lum > 220.0:
+                lighting_status = "कम रोशनी (रोशनी बढ़ाएं)" if is_hi else "Too Dark (Increase Phone Brightness)"
+            elif mean_lum > 238.0:
                 exposure_score = max(15, int((255 - mean_lum) * 2.5))
-                lighting_status = "Overexposed (Too Bright / Glare)"
+                lighting_status = "अधिक चमक / ग्लेयर (थोड़ा झुकाएं)" if is_hi else "Screen Glare / Too Bright (Tilt Phone Slightly)"
             else:
-                exposure_score = min(100, int(100 - abs(mean_lum - 128) * 0.45))
-                lighting_status = "Good Lighting"
+                exposure_score = min(100, int(100 - abs(mean_lum - 135) * 0.38))
+                lighting_status = "अच्छी रोशनी" if is_hi else "Good Lighting"
 
             # 2. Sharpness / Blur check (Spatial Laplacian variance)
             lap = (
@@ -661,16 +1130,16 @@ class LeafQualityAI:
             base_s = max(10.0, float(min_sharpness))
             if sharp_var > (base_s * 4.0):
                 sharpness_score = 98
-                sharp_status = "Sharp & In Focus"
+                sharp_status = "साफ़ और स्पष्ट फ़ोकस" if is_hi else "Sharp & In Focus"
             elif sharp_var > (base_s * 2.0):
                 sharpness_score = int(70 + (sharp_var - base_s * 2.0) * (28.0 / (base_s * 2.0)))
-                sharp_status = "Good Focus"
+                sharp_status = "अच्छा फ़ोकस" if is_hi else "Good Focus"
             elif sharp_var >= base_s:
                 sharpness_score = int(45 + (sharp_var - base_s) * (25.0 / base_s))
-                sharp_status = "Slightly Blurry"
+                sharp_status = "हल्का धुंधला" if is_hi else "Slightly Blurry"
             else:
                 sharpness_score = max(10, int(sharp_var * (45.0 / base_s)))
-                sharp_status = "Blurry (Motion Blur)"
+                sharp_status = "धुंधला चित्र (Blurry)" if is_hi else "Blurry (Motion Blur)"
 
             # 3. Leaf Presence (Center Box Coverage via Excess Green Index: 2G - R - B)
             h, w = arr.shape[:2]
@@ -681,17 +1150,17 @@ class LeafQualityAI:
             center_b = b[y0:y1, x0:x1]
 
             exg = 2.0 * center_g - center_r - center_b
-            leaf_pixels = np.mean((exg > 8.0) | ((center_g > center_r) & (center_g > 35.0)))
+            leaf_pixels = np.mean((exg > 4.0) | ((center_g >= center_r * 0.90) & (center_g > 28.0)))
 
             if leaf_pixels > 0.35:
                 presence_score = 95
-                presence_status = "Leaf Centered"
+                presence_status = "पत्ती केंद्र में है" if is_hi else "Leaf Centered"
             elif leaf_pixels > 0.18:
                 presence_score = 75
-                presence_status = "Partial Leaf"
+                presence_status = "आंशिक पत्ती" if is_hi else "Partial Leaf"
             else:
                 presence_score = 30
-                presence_status = "No Leaf in Box"
+                presence_status = "बॉक्स में पत्ती नहीं है" if is_hi else "No Leaf in Box"
 
             # Composite Quality Score (0 - 100%)
             overall_score = int(0.40 * sharpness_score + 0.30 * exposure_score + 0.30 * presence_score)
@@ -700,29 +1169,45 @@ class LeafQualityAI:
             # Verdict & Color
             if overall_score >= 75 and sharpness_score >= 60 and exposure_score >= 50:
                 rating = "EXCELLENT"
-                msg = f"Quality: {overall_score}% (Sharp & Clear - Ready to Diagnose)"
+                msg = (
+                    f"गुणवत्ता: {overall_score}% (साफ़ और स्पष्ट - जाँच के लिए तैयार)"
+                    if is_hi else
+                    f"Quality: {overall_score}% (Sharp & Clear - Ready to Diagnose)"
+                )
                 color = GREEN_ACCENT
             elif overall_score >= 50:
                 rating = "GOOD"
-                msg = f"Quality: {overall_score}% ({sharp_status})"
+                msg = f"गुणवत्ता: {overall_score}% ({sharp_status})" if is_hi else f"Quality: {overall_score}% ({sharp_status})"
                 color = GREEN_PRIMARY
             elif sharpness_score < 45:
                 rating = "POOR"
-                msg = f"Quality: {overall_score}% ({sharp_status} — Hold still & Retake)"
+                msg = (
+                    f"गुणवत्ता: {overall_score}% ({sharp_status} — स्थिर रखें और फिर से फोटो लें)"
+                    if is_hi else
+                    f"Quality: {overall_score}% ({sharp_status} — Hold still & Retake)"
+                )
                 color = AMBER_WARN
             elif exposure_score < 45:
                 rating = "POOR"
-                msg = f"Quality: {overall_score}% ({lighting_status} — Adjust Light)"
+                msg = (
+                    f"गुणवत्ता: {overall_score}% ({lighting_status} — रोशनी ठीक करें)"
+                    if is_hi else
+                    f"Quality: {overall_score}% ({lighting_status} — Adjust Light)"
+                )
                 color = AMBER_WARN
             else:
                 rating = "POOR"
-                msg = f"Quality: {overall_score}% ({presence_status} — Center Leaf in Box)"
+                msg = (
+                    f"गुणवत्ता: {overall_score}% ({presence_status} — पत्ती को बॉक्स के बीच में रखें)"
+                    if is_hi else
+                    f"Quality: {overall_score}% ({presence_status} — Center Leaf in Box)"
+                )
                 color = RED_ALERT
 
             return overall_score, rating, msg, color
 
         except Exception as e:
-            return 75, "GOOD", f"Quality: Ready ({e})", GREEN_ACCENT
+            return 75, "GOOD", (f"गुणवत्ता: तैयार ({e})" if is_hi else f"Quality: Ready ({e})"), GREEN_ACCENT
 
 
 # =============================================================================
@@ -735,9 +1220,12 @@ class Camera:
         self.cv2 = None
         self.kind = "none"
         self.port = -1
+        self.last_working_port = -1
         self.backend = "none"
         self.width = 640
         self.height = 480
+        # Requested capture mode (from cam_resolution); detect_webcam falls back to 640x480 if it fails.
+        self.resolution = parse_camera_resolution(DEFAULT_CONFIG["cam_resolution"])
         self.device_name = "USB Camera"
         self.fail_count = 0
 
@@ -833,34 +1321,52 @@ class Camera:
             else:
                 backends = [("Default", self.cv2.CAP_ANY)]
 
-            # Probe ports with cascading backends (ports 0, 1, 2)
+            # Probe ports with cascading backends (prioritize last working port for instant wake-up)
+            ports_order = (
+                [self.last_working_port] + [p for p in range(3) if p != self.last_working_port]
+                if self.last_working_port >= 0 else list(range(3))
+            )
             for b_name, b_id in backends:
-                for port in range(3):
+                for port in ports_order:
                     try:
                         c = self.cv2.VideoCapture(port, b_id)
                         if not c.isOpened():
                             continue
 
-                        # Configure 640x480 resolution & single-frame buffer before reading
-                        c.set(self.cv2.CAP_PROP_FRAME_WIDTH, 640)
-                        c.set(self.cv2.CAP_PROP_FRAME_HEIGHT, 480)
-                        try:
-                            c.set(self.cv2.CAP_PROP_BUFFERSIZE, 1)
-                        except Exception:
-                            pass
-
-                        # Multi-frame warmup: Allow auto-exposure (AEC) and auto-gain (AGC) to stabilize
+                        # Request the configured resolution (default 1280x720, the C270 maximum); if the
+                        # camera delivers no frames in that mode, retry the same port at 640x480.
+                        modes = [tuple(self.resolution)]
+                        if modes[0] != CAMERA_FALLBACK_RESOLUTION:
+                            modes.append(CAMERA_FALLBACK_RESOLUTION)
                         ok, frame = False, None
-                        for _ in range(4):
-                            ok, frame = c.read()
+                        for req_w, req_h in modes:
+                            if (req_w, req_h) != CAMERA_FALLBACK_RESOLUTION:
+                                # MJPG keeps 1280x720 at full frame rate over USB 2.0 (YUYV is ~7.5 fps on the C270)
+                                try:
+                                    c.set(self.cv2.CAP_PROP_FOURCC, self.cv2.VideoWriter_fourcc(*"MJPG"))
+                                except Exception:
+                                    pass
+                            c.set(self.cv2.CAP_PROP_FRAME_WIDTH, req_w)
+                            c.set(self.cv2.CAP_PROP_FRAME_HEIGHT, req_h)
+                            try:
+                                c.set(self.cv2.CAP_PROP_BUFFERSIZE, 1)
+                            except Exception:
+                                pass
+
+                            # Multi-frame warmup: Allow auto-exposure (AEC) and auto-gain (AGC) to stabilize
+                            for _ in range(4):
+                                ok, frame = c.read()
+                                if ok and frame is not None and frame.size > 0:
+                                    break
+                                time.sleep(0.025)
                             if ok and frame is not None and frame.size > 0:
                                 break
-                            time.sleep(0.025)
 
                         if ok and frame is not None and frame.size > 0:
                             h, w = frame.shape[:2]
                             self.cap = c
                             self.port = port
+                            self.last_working_port = port
                             self.backend = b_name
                             self.width = w
                             self.height = h
@@ -1050,7 +1556,7 @@ class Camera:
         return self._apply_isp(pil_img)
 
     def close(self):
-        """Safely releases the hardware camera handle."""
+        """Safely releases and powers down the hardware camera handle."""
         with self._lock:
             if self.cap:
                 try:
@@ -1058,6 +1564,8 @@ class Camera:
                 except Exception:
                     pass
                 self.cap = None
+            self.kind = "none"
+            self.port = -1
 
 
 # =============================================================================
@@ -1070,6 +1578,7 @@ class Classifier:
         self.mode = "DEMO"
         self.error_reason = ""
         self.labels = self._load_labels()
+        self.model_sha256 = file_sha256(self.model_path) if os.path.exists(self.model_path) else ""
         self.session = None
         self.input_name = None
         self.input_shape = [1, 3, 224, 224]
@@ -1139,8 +1648,9 @@ class Classifier:
             else:
                 self.layout, self.h, self.w = "NHWC", shape[1], shape[2]
 
-            self.mode = "ONNX (98.31%)"
-            self.error_reason = ""
+            self.mode = self._mode_after_load()
+            if self.mode != "DEMO":
+                self.error_reason = ""
         except ImportError:
             _auto_install_package("onnxruntime", "onnxruntime")
             try:
@@ -1161,8 +1671,9 @@ class Classifier:
                     self.layout, self.h, self.w = "NCHW", shape[2], shape[3]
                 else:
                     self.layout, self.h, self.w = "NHWC", shape[1], shape[2]
-                self.mode = "ONNX (98.31%)"
-                self.error_reason = ""
+                self.mode = self._mode_after_load()
+                if self.mode != "DEMO":
+                    self.error_reason = ""
             except Exception as e_retry:
                 self.mode = "DEMO"
                 self.error_reason = f"onnxruntime not installed ({e_retry})"
@@ -1170,8 +1681,23 @@ class Classifier:
             self.mode = "DEMO"
             self.error_reason = str(e)
 
+    def _mode_after_load(self):
+        """Verifies that the model output width matches the label list; returns the engine mode string (and disables inference on mismatch)."""
+        try:
+            n_out = self.session.get_outputs()[0].shape[-1]
+            n_out = int(n_out) if isinstance(n_out, (int, float)) or str(n_out).isdigit() else None
+        except Exception:
+            n_out = None
+        if n_out is not None and n_out != len(self.labels):
+            self.session = None
+            self.error_reason = f"model outputs {n_out} classes but labels.txt has {len(self.labels)}"
+            return "DEMO"
+        if self.model_sha256 and self.model_sha256 == str(MODEL_SHA256).lower():
+            return f"ONNX {MODEL_ID} {MODEL_VERSION}"
+        return "ONNX (unrecognised model file)"
+
     def _prep_tensor(self, rgb_img):
-        img = ImageOps.fit(rgb_img, (self.w, self.h), RESAMPLE)
+        img = rgb_img.resize((self.w, self.h), RESAMPLE_BILINEAR)
         arr = np.asarray(img, dtype=np.float32) / 255.0
         mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
         std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
@@ -1180,36 +1706,60 @@ class Classifier:
             arr = np.transpose(arr, (2, 0, 1))
         return arr
 
-    @staticmethod
-    def _dehaze_screen_glare(pil_img):
+    def _prep_val_crop(self, rgb_img):
         """
-        Compensates for optical washout, lifted black levels (glare), and blue OLED/LCD
-        backlight cast when photographing a mobile phone screen or under harsh ambient light,
-        while strictly preserving the leaf's R:G color ratio.
+        Exact replica of the PyTorch validation transform in train_mobilenetv4.py:
+        transforms.Resize(256) (shorter edge = 256, bilinear) -> transforms.CenterCrop(224).
+        """
+        iw, ih = rgb_img.size
+        target_short = int(round(max(self.w, self.h) * (256.0 / 224.0)))
+        if iw <= 0 or ih <= 0:
+            return rgb_img.resize((self.w, self.h), RESAMPLE_BILINEAR)
+        if iw < ih:
+            nw, nh = target_short, int(round(ih * (target_short / iw)))
+        else:
+            nh, nw = target_short, int(round(iw * (target_short / ih)))
+        resized = rgb_img.resize((nw, nh), RESAMPLE_BILINEAR)
+        x0 = max(0, (nw - self.w) // 2)
+        y0 = max(0, (nh - self.h) // 2)
+        return resized.crop((x0, y0, x0 + self.w, y0 + self.h))
+
+    @staticmethod
+    def _enhance_mobile_screen(pil_img):
+        """
+        Optimizes webcam captures of leaves displayed on mobile phone screens (OLED/LCD):
+        1. Suppresses high-frequency RGB pixel-grid Moire patterns via subtle Gaussian anti-aliasing.
+        2. Removes lifted black levels (ambient room reflection/glare on phone glass).
+        3. Neutralizes blue OLED/LCD backlight cast while preserving the leaf's true R:G ratio.
+        4. Restores contrast and leaf vein edge definition.
         """
         if np is None or pil_img is None:
             return pil_img
         try:
             arr = np.asarray(pil_img.convert("RGB"), dtype=np.float32)
+            if cv2 is not None and min(arr.shape[:2]) >= 140:
+                arr = cv2.GaussianBlur(arr, (3, 3), 0.65)
             h, w = arr.shape[:2]
-            inner = arr[int(h * 0.12):int(h * 0.88), int(w * 0.12):int(w * 0.88)]
-            p_low = np.percentile(inner, 1.5, axis=(0, 1))
-            rg_floor = max(0.0, min(float(p_low[0]), float(p_low[1])) - 10.0) * 0.85
-            b_floor = max(rg_floor, (float(p_low[2]) - 10.0) * 0.88)
+            inner = arr[int(h * 0.10):int(h * 0.90), int(w * 0.10):int(w * 0.90)]
+            if inner.size == 0:
+                inner = arr
+            p_low = np.percentile(inner, 2.0, axis=(0, 1))
+            rg_floor = max(0.0, min(float(p_low[0]), float(p_low[1])) - 8.0) * 0.85
+            b_floor = max(rg_floor, (float(p_low[2]) - 6.0) * 0.90)
             floor_vec = np.array([rg_floor, rg_floor, b_floor], dtype=np.float32)
 
             shifted = np.maximum(0.0, arr - floor_vec)
             inner_shifted = np.maximum(0.0, inner - floor_vec)
 
-            p_high_ch = np.percentile(inner_shifted, 99.2, axis=(0, 1))
+            p_high_ch = np.percentile(inner_shifted, 99.0, axis=(0, 1))
             rg_high = max(float(p_high_ch[0]), float(p_high_ch[1]), 45.0)
-            if float(p_high_ch[2]) > rg_high * 1.04:
+            if float(p_high_ch[2]) > rg_high * 1.02:
                 shifted[:, :, 2] *= (rg_high / float(p_high_ch[2]))
 
-            scale = min(1.65, 248.0 / rg_high)
+            scale = min(1.60, 248.0 / rg_high)
             out = np.clip(shifted * scale, 0, 255).astype(np.uint8)
             img = Image.fromarray(out)
-            return ImageEnhance.Sharpness(img).enhance(1.25)
+            return ImageEnhance.Sharpness(img).enhance(1.20)
         except Exception:
             return pil_img
 
@@ -1224,19 +1774,21 @@ class Classifier:
             return probs, (time.perf_counter() - t0) * 1000, None
 
         rgb = pil_image.convert("RGB")
-        iw, ih = rgb.size
-        min_s = min(iw, ih)
+        scr = self._enhance_mobile_screen(rgb)
 
-        # Multi-scale 1:1 square center views (100%, 76%, 58% of min_side) in both natural RGB
-        # and screen-glare-dehazed RGB to strip phone bezels and counter screen/ambient washout
-        views = []
-        scales = (1.0, 0.76, 0.58) if min_s >= 120 else (1.0,)
-        for scale in scales:
-            s = max(64, int(min_s * scale))
-            x0, y0 = (iw - s) // 2, (ih - s) // 2
-            sq = rgb.crop((x0, y0, x0 + s, y0 + s))
-            views.append(sq)
-            views.append(self._dehaze_screen_glare(sq))
+        # Evaluate strictly on the user-selected cropped leaf area in both Natural RGB and
+        # Mobile-Screen-Restored RGB (anti-glare, de-moire, blue-backlight neutralized):
+        # 1-2. Complete cropped selection resized to 224x224 (100% of selected area)
+        # 3-4. 1:1 aspect-ratio preserving square center fit of the selected area
+        # 5-6. Validation crop (Resize(256) -> CenterCrop(224)) of the selected area
+        views = [
+            rgb,
+            scr,
+            ImageOps.fit(rgb, (self.w, self.h), RESAMPLE_BILINEAR),
+            ImageOps.fit(scr, (self.w, self.h), RESAMPLE_BILINEAR),
+            self._prep_val_crop(rgb),
+            self._prep_val_crop(scr),
+        ]
 
         batch_tensors = np.stack([self._prep_tensor(v) for v in views], axis=0)
 
@@ -1248,26 +1800,22 @@ class Classifier:
                 axis=0
             )
 
+        # Compare Natural ensemble vs Mobile-Screen-Restored ensemble + individual views
+        nat_logits = 0.45 * batch_out[0] + 0.35 * batch_out[2] + 0.20 * batch_out[4]
+        scr_logits = 0.45 * batch_out[1] + 0.35 * batch_out[3] + 0.20 * batch_out[5]
+        candidates = [nat_logits, scr_logits] + [batch_out[i] for i in range(len(batch_out))]
+
         best_probs = None
         best_raw = None
         best_score = -1e9
 
-        neg_indices = {
-            i for i, lbl in enumerate(self.labels)
-            if ("other" in lbl.lower()) or ("background" in lbl.lower())
-        }
-
-        for i in range(len(batch_out)):
-            r_out = batch_out[i]
+        for idx, r_out in enumerate(candidates):
             exps = np.exp(r_out - np.max(r_out))
             p_vec = exps / np.sum(exps)
-
-            # Score by strongest non-negative crop probability AND raw neural logit energy
-            plant_probs = [p_vec[j] for j in range(len(p_vec)) if j not in neg_indices]
-            plant_logits = [r_out[j] for j in range(len(r_out)) if j not in neg_indices]
-            max_plant_p = float(max(plant_probs)) if plant_probs else float(np.max(p_vec))
-            max_plant_l = float(max(plant_logits)) if plant_logits else float(np.max(r_out))
-            score = max_plant_p + 0.08 * min(8.0, max(0.0, max_plant_l)) + (0.03 if i < 4 else 0.0)
+            top_p = float(np.max(p_vec))
+            top_l = float(np.max(r_out))
+            ensemble_bonus = 0.04 if idx < 2 else 0.0
+            score = top_p + 0.06 * min(8.0, max(0.0, top_l)) + ensemble_bonus
             if score > best_score:
                 best_score = score
                 best_probs = p_vec.tolist()
@@ -1528,14 +2076,42 @@ class AgriLensApp:
         self.paused = False
         self.latest_frame = None
         self.captured_frame = None
+        self.crop_box = None
+        self._img_disp_rect = (0, 0, 640, 480)
+        self._crop_drag_mode = None
+        self._crop_drag_start = (0, 0)
+        self._crop_box_start = None
 
         cfg = load_kiosk_config()
+        self._loaded_cfg = dict(cfg)
+        self.gate_source = "configuration (model not loaded yet)"
         self.threshold = float(cfg.get("confidence_threshold", CONFIDENCE_THRESHOLD))
         self.ood_margin = float(cfg.get("ood_margin", OOD_MARGIN_THRESHOLD))
         self.ood_logit = float(cfg.get("ood_logit", OOD_LOGIT_THRESHOLD))
         self.sharpness_min = float(cfg.get("sharpness_min", SHARPNESS_MIN_THRESHOLD))
 
         self.selected_plant = None
+        self.lang = "HI" if str(cfg.get("language", "EN")).upper() == "HI" else "EN"
+        self.last_file_short_name = ""
+        self.last_file_path = ""
+        self.last_verdict = None
+        self.history_enabled = bool(cfg.get("history_enabled", True))
+        self.history_max_images = int(cfg.get("history_max_images", 5000))
+        self.history = DiagnosisHistory(HISTORY_DIR, enabled=self.history_enabled, max_images=self.history_max_images)
+        self.history_sync_cfg = {k: cfg.get(k, DEFAULT_CONFIG[k]) for k in ("history_sync_enabled", "history_sync_remote", "history_sync_path", "history_sync_minutes")}
+        self.history_sync = HistorySync(HISTORY_DIR, remote=self.history_sync_cfg["history_sync_remote"], dest_path=self.history_sync_cfg["history_sync_path"],
+                                        minutes=self.history_sync_cfg["history_sync_minutes"], enabled=bool(self.history_sync_cfg["history_sync_enabled"]))
+        self.history_sync.start()
+        self.input_mode = "LIVE"  # Default: "LIVE" (if camera connected), auto-falls back to "FILE" if no camera
+        self.startup_splash_active = True
+        self.startup_start_ts = time.monotonic()
+        self.bootstrap_done = False
+        self.standby_active = False
+        self._waking_from_standby = False
+        self._wake_guard_until = 0.0
+        self._file_dialog_open = False
+        self.last_activity_ts = time.monotonic()
+        self.splash_logo_img = None
         self.last_probs = None
         self.last_raw_out = None
         self.latency_ms = 0.0
@@ -1552,6 +2128,7 @@ class AgriLensApp:
         self.camera.flip_v = bool(cfg.get("cam_flip_v", False))
         self.camera.auto_exp = bool(cfg.get("cam_auto_exp", True))
         self.camera.auto_wb = bool(cfg.get("cam_auto_wb", True))
+        self.camera.resolution = parse_camera_resolution(cfg.get("cam_resolution"))
 
         self.classifier = None
         self.plants = ["Apple", "Mango", "Potato", "Tomato"]
@@ -1569,24 +2146,28 @@ class AgriLensApp:
         self._build_password_screen()
         self._build_admin_panel()
         self._build_camera_panel()
+        self._build_screensaver_overlay()
 
-        # Display immediate responsive startup status on canvas
-        self.canvas.itemconfig(
-            self.msg_txt,
-            text="⚡ INITIALIZING AGRILENS AI VISION ENGINE...\nConnecting to camera..."
-        )
-        self.banner.config(text="STARTING UP — PLEASE WAIT...", bg=GREY_BTN, fg=WHITE)
+        # Load and display full-screen AGRILENS screensaver on startup (deactivates after 5s or on touch/click)
+        self.splash_logo_img = self._load_splash_logo()
+        self._refresh_language_ui()
+        self._show_fullscreen_screensaver(is_startup=True)
+        self._update_stats_bar()
 
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         self.root.bind("<Escape>", self._on_escape_key)
         self.root.bind("<space>", self._on_space_key)
         self.root.bind("<Key>", self._on_key_press)
+        self.root.bind_all("<ButtonPress>", self._on_global_user_activity, add="+")
+        self.root.bind_all("<B1-Motion>", self._on_global_user_activity, add="+")
+        self.root.bind_all("<ButtonRelease>", self._on_global_user_activity, add="+")
+        self.root.bind_all("<KeyPress>", self._on_global_user_activity, add="+")
 
         # Non-blocking async bootstrap: window paints immediately in <0.1s
         self.root.after(30, self._start_async_bootstrap)
 
     def _any_overlay_open(self):
-        for attr in ("picker", "pwd_screen", "admin", "cam_panel"):
+        for attr in ("picker", "pwd_screen", "admin", "cam_panel", "mode_dropdown"):
             w = getattr(self, attr, None)
             if w is not None and w.winfo_ismapped():
                 return True
@@ -1659,19 +2240,19 @@ class AgriLensApp:
         self.root.after(100, lambda: self.root.attributes("-fullscreen", True))
 
         self.S = min(self.W / 1024, self.H / 600)
-        self.TOP_H = self.px(48)
+        self.TOP_H = self.px(60)
 
     def px(self, val):
         return max(1, round(val * self.S))
 
     def f(self, size, bold=False):
-        return (FONT, max(8, round(size * self.S)), "bold" if bold else "normal")
+        return (FONT, max(9, round(size * self.S)), "bold" if bold else "normal")
 
-    def _button(self, parent, text, bg, cmd, width=None, height=None, size=11, fg=None, radius=None, border=None, parent_bg=None):
+    def _button(self, parent, text, bg, cmd, width=None, height=None, size=12, fg=None, radius=None, border=None, parent_bg=None):
         if fg is None:
             fg = DARK if bg in (WHITE, GREEN_ACCENT, GREEN_GLOW) else WHITE
         if height is None:
-            height = self.px(38)
+            height = self.px(44)
         if parent_bg is None:
             try:
                 parent_bg = parent.cget("bg")
@@ -1688,29 +2269,174 @@ class AgriLensApp:
         )
 
     # ---- 1. Top Bar with Brand, Crop Filter, Admin & Gundecha Academy Logo ----
+    def _load_splash_logo(self):
+        """Loads the AGRILENS full-screen screensaver logo from the dedicated logos/ folder."""
+        for candidate in ("agrilens_logo.jpg", "agrilens_logo.png", "agrilens_splash.jpg"):
+            logo_path = find_logo_file(candidate)
+            if logo_path and os.path.exists(logo_path):
+                try:
+                    with Image.open(logo_path) as raw_im:
+                        return raw_im.convert("RGB")
+                except Exception as e:
+                    print("Notice: splash logo load error:", e)
+        return None
+
+    def _build_screensaver_overlay(self):
+        """Builds the full-screen AGRILENS logo screensaver overlay covering the complete screen (self.W x self.H)."""
+        self.screensaver_frame = tk.Frame(self.root, bg="#010603", width=self.W, height=self.H)
+        self.screensaver_canvas = tk.Canvas(
+            self.screensaver_frame, width=self.W, height=self.H,
+            bg="#010603", highlightthickness=0, cursor="hand2"
+        )
+        self.screensaver_canvas.pack(fill="both", expand=True)
+        self.screensaver_img_item = self.screensaver_canvas.create_image(
+            self.W // 2, self.H // 2, anchor="center"
+        )
+        self.screensaver_hint_item = self.screensaver_canvas.create_text(
+            self.W // 2, self.H - self.px(16), anchor="s",
+            fill=GREEN_ACCENT, font=self.f(10, True),
+            text="TOUCH OR CLICK ANYWHERE TO CONTINUE"
+        )
+        self.screensaver_canvas.bind("<ButtonPress-1>", self._on_screensaver_touch)
+        self.screensaver_frame.bind("<ButtonPress-1>", self._on_screensaver_touch)
+
+    def _show_fullscreen_screensaver(self, is_startup=True):
+        """Displays the AGRILENS logo as a full-screen screensaver over the complete screen (never inside the camera box)."""
+        if not hasattr(self, "screensaver_frame"):
+            return
+        if self.splash_logo_img is not None:
+            iw, ih = self.splash_logo_img.size
+            scale = min(self.W / max(1, iw), self.H / max(1, ih))
+            nw = max(1, int(round(iw * scale)))
+            nh = max(1, int(round(ih * scale)))
+            resized = self.splash_logo_img.resize((nw, nh), RESAMPLE_LANCZOS)
+            full_im = Image.new("RGB", (self.W, self.H), (1, 6, 3))
+            full_im.paste(resized, ((self.W - nw) // 2, (self.H - nh) // 2))
+            self._screensaver_photo = ImageTk.PhotoImage(full_im)
+            self.screensaver_canvas.itemconfig(self.screensaver_img_item, image=self._screensaver_photo)
+        else:
+            self._screensaver_photo = None
+            self.screensaver_canvas.itemconfig(self.screensaver_img_item, image="")
+
+        hint_txt = (
+            "TOUCH OR CLICK ANYWHERE TO START"
+            if is_startup else
+            "SCREENSAVER ACTIVE (CAMERA OFF)  •  TOUCH OR CLICK ANYWHERE TO WAKE"
+        )
+        self.screensaver_canvas.itemconfig(self.screensaver_hint_item, text=hint_txt)
+        self.screensaver_frame.place(x=0, y=0, width=self.W, height=self.H)
+        self.screensaver_frame.lift()
+
+    def _hide_fullscreen_screensaver(self):
+        """Hides the full-screen screensaver overlay immediately."""
+        if hasattr(self, "screensaver_frame") and self.screensaver_frame.winfo_ismapped():
+            self.screensaver_frame.place_forget()
+
+    def _on_screensaver_touch(self, event=None):
+        """Deactivates the full-screen screensaver immediately on touch or click."""
+        self.last_activity_ts = time.monotonic()
+        self._wake_guard_until = time.monotonic() + 0.35
+        if self.startup_splash_active:
+            self._finish_startup_splash()
+            return "break"
+        if self.standby_active:
+            self._wake_from_standby()
+            return "break"
+        self._hide_fullscreen_screensaver()
+        return "break"
+
+    def _on_global_user_activity(self, event=None):
+        """Tracks user touch/mouse/keyboard activity and deactivates full-screen screensaver on touch/click/key."""
+        self.last_activity_ts = time.monotonic()
+        ev_type = str(getattr(event, "type", ""))
+        is_press = ev_type in ("4", "ButtonPress", "2", "KeyPress")
+        if self.startup_splash_active and is_press:
+            self._wake_guard_until = time.monotonic() + 0.35
+            self._finish_startup_splash()
+            return
+        if self.standby_active and not self._waking_from_standby:
+            if is_press or event is not None:
+                self._wake_from_standby()
+
+    def _enter_inactivity_standby(self):
+        """Triggered after 3 minutes of inactivity: activates full-screen logo screensaver and turns off camera."""
+        if self.standby_active or self.startup_splash_active:
+            return
+        self.standby_active = True
+        self.paused = False
+        self.captured_frame = None
+        self.last_probs = None
+        self.last_raw_out = None
+        self.close_overlays()
+        if self.camera:
+            self.camera.close()
+        self._show_fullscreen_screensaver(is_startup=False)
+        self._update_stats_bar()
+
+    def _wake_from_standby(self):
+        """Deactivates the full-screen screensaver, turns on the camera, and switches back to Live Mode."""
+        if not self.standby_active or self._waking_from_standby:
+            self._hide_fullscreen_screensaver()
+            return
+        self.standby_active = False
+        self._waking_from_standby = True
+        self._wake_guard_until = time.monotonic() + 0.45
+        self.last_activity_ts = time.monotonic()
+
+        # Hide full-screen screensaver immediately on touch/click
+        self._hide_fullscreen_screensaver()
+
+        self.canvas.itemconfig(self.live_badge, text="TURNING ON CAMERA...", fill=GREEN_ACCENT)
+        self.banner_frame.config(bg=GREEN_PRIMARY)
+        self.banner.config(text="TURNING ON CAMERA — SWITCHING TO LIVE MODE...", bg=GREEN_PRIMARY, fg=WHITE)
+        self.quality_lbl.config(text="Turning on camera and resuming Live Mode...", fg=GREEN_ACCENT)
+        self.root.update_idletasks()
+
+        q = queue.Queue()
+        def wake_worker():
+            ok, msg = self.camera.detect_webcam()
+            q.put((ok, msg))
+
+        threading.Thread(target=wake_worker, daemon=True).start()
+
+        def poll_wake():
+            try:
+                ok, _ = q.get_nowait()
+                self._waking_from_standby = False
+                self.last_activity_ts = time.monotonic()
+                if ok and self._has_camera():
+                    self.set_input_mode("LIVE", browse_on_file=False)
+                else:
+                    self.set_input_mode("FILE", browse_on_file=False)
+                return
+            except queue.Empty:
+                pass
+            if self.running:
+                self.root.after(30, poll_wake)
+
+        poll_wake()
+
     def _build_school_logo(self, parent):
         px = self.px
-        logo_path = find_file(os.path.join("assets", "gundecha_logo.png"))
-        if not os.path.exists(logo_path):
-            logo_path = find_file("gundecha_logo.png")
+        logo_path = find_logo_file("gundecha_logo.png")
 
         if os.path.exists(logo_path):
             try:
                 raw_logo = Image.open(logo_path)
-                lh = px(38)
+                lh = px(44)
                 aspect = raw_logo.width / max(1, raw_logo.height)
                 lw = max(1, int(lh * aspect))
                 resized = raw_logo.resize((lw, lh), RESAMPLE)
 
-                pad_x, pad_y = px(4), px(2)
+                pad_x, pad_y = px(5), px(3)
                 bw, bh = lw + 2 * pad_x, lh + 2 * pad_y
                 scale = 2
                 badge_im = Image.new("RGBA", (bw * scale, bh * scale), (0, 0, 0, 0))
                 d = ImageDraw.Draw(badge_im)
                 d.rounded_rectangle(
                     [0, 0, bw * scale - 1, bh * scale - 1],
-                    radius=px(10) * scale,
-                    fill=(255, 255, 255, 245),
+                    radius=px(12) * scale,
+                    fill=(255, 255, 255, 248),
                     outline=(210, 220, 215, 255),
                     width=scale
                 )
@@ -1721,47 +2447,334 @@ class AgriLensApp:
                 logo_lbl = tk.Label(
                     parent, image=self._school_logo_photo, bg=PANEL, cursor="hand2", bd=0
                 )
-                logo_lbl.pack(side="right", padx=(px(4), px(12)), pady=px(5))
+                logo_lbl.pack(side="right", padx=(px(6), px(12)), pady=px(5))
                 logo_lbl.bind("<Button-1>", lambda e: webbrowser.open("https://www.gundechaedu.org/"))
                 ToolTip(logo_lbl, "Gundecha Education Academy", "Official Partner Institution\nClick to open official portal: gundechaedu.org", font_family=FONT)
                 return
             except Exception as e:
                 print("Notice: logo load error:", e)
 
-        school_box = tk.Frame(parent, bg=WHITE, padx=px(6), pady=px(2))
-        school_box.pack(side="right", padx=(px(4), px(12)), pady=px(8))
-        tk.Label(school_box, text="GEA", font=self.f(11, True), fg=DARK, bg=WHITE).pack()
+        school_box = tk.Frame(parent, bg=WHITE, padx=px(8), pady=px(4))
+        school_box.pack(side="right", padx=(px(6), px(12)), pady=px(10))
+        tk.Label(school_box, text="GEA", font=self.f(12, True), fg=DARK, bg=WHITE).pack()
 
     def _build_top_bar(self):
         px = self.px
-        top = tk.Frame(self.root, bg=PANEL, height=self.TOP_H)
+        top = tk.Frame(
+            self.root, bg=PANEL, height=self.TOP_H,
+            highlightbackground=BORDER, highlightthickness=max(1, px(1))
+        )
         top.pack(side="top", fill="x")
         top.pack_propagate(False)
 
-        # Crop Filter Button (Auto - Beta)
-        self.plant_btn = self._button(
-            top, "SELECT CROP (AUTO)", CARD, self.open_plant_picker,
-            height=px(38), size=10, fg=WHITE, border=BORDER, parent_bg=PANEL
-        )
-        self.plant_btn.pack(side="left", padx=(px(10), px(6)), pady=px(7))
-
-        # Header Title
+        # 1. Left: Brand Header Title (AGRILENS + Subtitle)
         title_box = tk.Frame(top, bg=PANEL)
-        title_box.pack(side="left", padx=px(10), fill="y")
-        lbl_brand = tk.Label(title_box, text="AGRILENS", font=self.f(15, True), fg=WHITE, bg=PANEL, cursor="hand2")
+        title_box.pack(side="left", padx=(px(12), px(6)))
+        lbl_brand = tk.Label(title_box, text="AGRILENS", font=self.f(17, True), fg=WHITE, bg=PANEL, cursor="hand2")
         lbl_brand.pack(anchor="w")
-        ToolTip(lbl_brand, "AGRILENS Edge Vision Kiosk", f"Version: v{APP_VERSION}\nBuild: {BUILD_TIMESTAMP}\nModel: MobileNetV4 ONNX (24 Classes)", font_family=FONT)
-        tk.Label(title_box, text="AI Agricultural Health Diagnostics", font=self.f(8, True), fg=GREEN_ACCENT, bg=PANEL).pack(anchor="w")
+        ToolTip(lbl_brand, "AGRILENS Edge Vision Kiosk", f"Version: v{APP_VERSION} ({OTA_RELEASE_ID})\nBuild: {BUILD_TIMESTAMP}\nModel: {MODEL_ID} {MODEL_VERSION} (24 classes)\nDataset: {DATASET_VERSION}", font_family=FONT)
+        self.brand_sub_lbl = tk.Label(
+            title_box, text="AI Agricultural Health Diagnostics",
+            font=self.f(9, True), fg=GREEN_ACCENT, bg=PANEL
+        )
+        self.brand_sub_lbl.pack(anchor="w")
 
-        # Far Right: Official Gundecha Education Academy Logo
+        # 2. Far Right: Official Gundecha Education Academy Logo
         self._build_school_logo(top)
 
-        # ADMIN BUTTON (Right beside the school badge)
-        self.admin_btn = self._button(
-            top, "ADMIN", CARD, self.open_password_screen,
-            width=px(88), height=px(38), size=10, fg=WHITE, border=BORDER, parent_bg=PANEL
+        # 3. Unified Top Selection & Control Bar (All 4 buttons grouped & aligned together)
+        self.top_btn_bar = tk.Frame(top, bg=PANEL)
+        self.top_btn_bar.pack(side="right", padx=(px(4), px(6)), pady=px(7))
+
+        top_btn_h = px(44)
+        top_btn_r = px(14)
+
+        # Button A: Crop Filter Button (Auto - Beta)
+        self.plant_btn = self._button(
+            self.top_btn_bar, "🌱 CROP: AUTO (ALL)", CARD, self.open_plant_picker,
+            width=px(192), height=top_btn_h, size=11, radius=top_btn_r,
+            fg=WHITE, border=GREEN_ACCENT, parent_bg=PANEL
         )
-        self.admin_btn.pack(side="right", padx=(px(4), px(8)), pady=px(7))
+        self.plant_btn.pack(side="left", padx=px(4))
+
+        # Button B: Mode Selector Dropdown Button (Live Mode vs File Mode)
+        self.mode_btn = self._button(
+            self.top_btn_bar, "📷 MODE: LIVE ▾", CARD, self.toggle_mode_dropdown,
+            width=px(176), height=top_btn_h, size=11, radius=top_btn_r,
+            fg=WHITE, border=GREEN_ACCENT, parent_bg=PANEL
+        )
+        self.mode_btn.pack(side="left", padx=px(4))
+
+        # Button C: Language Toggle Button (Hindi / English — Main Screen Only)
+        self.lang_btn = self._button(
+            self.top_btn_bar, "🌐 हिंदी / EN", CARD, self.toggle_language,
+            width=px(142), height=top_btn_h, size=11, radius=top_btn_r,
+            fg=WHITE, border=GREEN_ACCENT, parent_bg=PANEL
+        )
+        self.lang_btn.pack(side="left", padx=px(4))
+
+        # Button D: Admin Console Button
+        self.admin_btn = self._button(
+            self.top_btn_bar, "⚙ ADMIN", CARD, self.open_admin_panel,
+            width=px(114), height=top_btn_h, size=11, radius=top_btn_r,
+            fg=WHITE, border=BORDER, parent_bg=PANEL
+        )
+        self.admin_btn.pack(side="left", padx=px(4))
+
+        self._build_mode_dropdown()
+
+    def toggle_language(self):
+        """Toggles Main Screen language between English (EN) and Hindi (HI)."""
+        self._hide_mode_dropdown()
+        self.lang = "HI" if self.lang == "EN" else "EN"
+        self._save_current_settings()
+        self._refresh_language_ui()
+
+    def _refresh_language_ui(self):
+        """Updates all Main Screen static and dynamic UI text in the selected language (Hindi / English)."""
+        is_hi = (self.lang == "HI")
+        if hasattr(self, "lang_btn"):
+            if is_hi:
+                self.lang_btn.config(text="🌐 भाषा: हिंदी", bg=GREEN_PRIMARY, border=GREEN_ACCENT, fg=WHITE)
+            else:
+                self.lang_btn.config(text="🌐 हिंदी / EN", bg=CARD, border=GREEN_ACCENT, fg=WHITE)
+
+        if hasattr(self, "brand_sub_lbl"):
+            self.brand_sub_lbl.config(
+                text="एआई कृषि स्वास्थ्य निदान" if is_hi else "AI Agricultural Health Diagnostics"
+            )
+
+        if hasattr(self, "plant_btn"):
+            if self.selected_plant is None:
+                self.plant_btn.config(
+                    text=("🌱 फसल: ऑटो (सभी)" if is_hi else "🌱 CROP: AUTO (ALL)"),
+                    bg=CARD, border=GREEN_ACCENT, fg=WHITE
+                )
+            else:
+                p_txt = translate_crop_hi(self.selected_plant) if is_hi else self.selected_plant.upper()
+                self.plant_btn.config(
+                    text=(f"🌱 फसल: {p_txt}" if is_hi else f"🌱 CROP: {p_txt}"),
+                    bg=GREEN_PRIMARY, border=GREEN_ACCENT, fg=WHITE
+                )
+
+        if hasattr(self, "rec_hdr_lbl"):
+            self.rec_hdr_lbl.config(
+                text="किसानों के लिए सुझाए गए उपाय" if is_hi else "RECOMMENDED FARMER ACTIONS"
+            )
+
+        if hasattr(self, "disclaimer_lbl"):
+            self.disclaimer_lbl.config(text=DISCLAIMER_HI if is_hi else DISCLAIMER)
+
+        if hasattr(self, "crop_info_badge"):
+            self.canvas.itemconfig(
+                self.crop_info_badge,
+                text="पत्ती क्रॉप करने हेतु हैंडल खींचें  •  डबल-टैप: पूर्ण" if is_hi else "DRAG HANDLES TO CROP LEAF  •  DOUBLE-TAP: FULL"
+            )
+
+        if hasattr(self, "picker_title_lbl"):
+            self.picker_title_lbl.config(text="जांच के लिए फसल चुनें" if is_hi else "SELECT CROP TO DIAGNOSE")
+        if hasattr(self, "picker_sub_lbl"):
+            self.picker_sub_lbl.config(
+                text="ऑटो-डिटेक्शन मोड सभी समर्थित फसलों की स्वचालित रूप से पहचान करता है"
+                if is_hi else "Auto-detection mode automatically identifies all supported plant species"
+            )
+        if hasattr(self, "picker_back_btn"):
+            self.picker_back_btn.config(text="← स्कैनर पर वापस जाएं" if is_hi else "← REVERT TO SCANNER")
+
+        self._refresh_mode_ui()
+
+        # Re-render active main-screen state in the selected language
+        if self.paused and self.captured_frame is not None:
+            is_live = self._is_live_mode()
+            cropped = self._get_cropped_leaf_image()
+            px0, py0, px1, py1 = self._get_crop_pixel_bounds()
+            pw, ph = max(1, px1 - px0), max(1, py1 - py0)
+            score, rating, q_msg, q_color = LeafQualityAI.assess(cropped, self.sharpness_min, lang=self.lang)
+            if self.last_probs is not None:
+                self.quality_lbl.config(
+                    text=(f"चयनित भाग ({pw}×{ph} px) | {q_msg}" if is_hi else f"Diagnosed Crop ({pw}×{ph} px) | {q_msg}"),
+                    fg=q_color
+                )
+                if is_live:
+                    self.capture_btn.config(text="↺  पुनः फोटो लें" if is_hi else "↺  RETAKE LEAF", bg=AMBER_WARN, fg=WHITE)
+                    self.canvas.itemconfig(
+                        self.live_badge,
+                        text="फोटो ली गई — क्रॉप करने हेतु हैंडल खींचें" if is_hi else "CAPTURED — DRAG HANDLES TO CROP",
+                        fill=GREEN_ACCENT
+                    )
+                else:
+                    self.capture_btn.config(text="📂  फाइल से चुनें" if is_hi else "📂  PICK FROM FILE", bg=AMBER_WARN, fg=WHITE)
+                    fn = self.last_file_short_name or "Sample"
+                    self.canvas.itemconfig(
+                        self.live_badge,
+                        text=(f"फाइल: {fn} (क्रॉप समायोजित करें)" if is_hi else f"FILE: {fn} (ADJUST CROP)"),
+                        fill=GREEN_ACCENT
+                    )
+                self._render_diagnosis(self.last_probs, self.last_raw_out)
+            else:
+                if is_live:
+                    self.quality_lbl.config(
+                        text=(f"पत्ती का भाग चुनने के लिए हैंडल खींचें | {q_msg}" if is_hi else f"Drag handles to select leaf area | {q_msg}"),
+                        fg=q_color
+                    )
+                    self.capture_btn.config(text="↺  पुनः फोटो लें" if is_hi else "↺  RETAKE LEAF", bg=AMBER_WARN, fg=WHITE)
+                    self.canvas.itemconfig(
+                        self.live_badge,
+                        text="फोटो ली गई — क्रॉप करने हेतु हैंडल खींचें" if is_hi else "CAPTURED — DRAG HANDLES TO CROP",
+                        fill=GREEN_ACCENT
+                    )
+                else:
+                    fn = self.last_file_short_name or "Sample"
+                    self.quality_lbl.config(
+                        text=(f"पत्ती क्रॉप करने के लिए हैंडल खींचें ({fn}) | {q_msg}" if is_hi else f"Drag handles to crop leaf ({fn}) | {q_msg}"),
+                        fg=q_color
+                    )
+                    self.capture_btn.config(text="📂  फाइल से चुनें" if is_hi else "📂  PICK FROM FILE", bg=AMBER_WARN, fg=WHITE)
+                    self.canvas.itemconfig(
+                        self.live_badge,
+                        text=(f"फाइल: {fn} (क्रॉप समायोजित करें)" if is_hi else f"FILE: {fn} (ADJUST CROP)"),
+                        fill=GREEN_ACCENT
+                    )
+                self.banner_frame.config(bg=GREEN_PRIMARY)
+                self.banner.config(
+                    text=("क्रॉप हैंडल समायोजित करें -> अभी जांचें दबाएं" if is_hi else "ADJUST CROP HANDLES -> TAP DIAGNOSE NOW"),
+                    bg=GREEN_PRIMARY, fg=WHITE
+                )
+                self.disease_lbl.config(
+                    text=(
+                        "सटीक पत्ती क्षेत्र चुनने के लिए हरे हैंडल खींचें, फिर 'अभी जांचें' दबाएं।"
+                        if is_hi else
+                        "Drag green handles to select exact leaf area, then tap DIAGNOSE NOW."
+                    )
+                )
+                self.diagnose_btn.config(text="🔍  अभी जांचें" if is_hi else "🔍  DIAGNOSE NOW", bg=GREEN_PRIMARY, fg=WHITE)
+        else:
+            self._reset_panel()
+
+    def _build_mode_dropdown(self):
+        px = self.px
+        self.mode_dropdown = tk.Frame(
+            self.root, bg=PANEL,
+            highlightbackground=GREEN_ACCENT, highlightthickness=max(1, px(2)),
+            padx=px(12), pady=px(12)
+        )
+        self.mode_dd_hdr = tk.Label(
+            self.mode_dropdown, text="SELECT INPUT MODE",
+            font=self.f(10, True), fg=MUTED, bg=PANEL, anchor="w"
+        )
+        self.mode_dd_hdr.pack(fill="x", pady=(0, px(8)))
+
+        self.mode_opt_live = self._button(
+            self.mode_dropdown, "●  LIVE MODE (Camera)", GREEN_PRIMARY,
+            lambda: self._on_mode_dropdown_select("LIVE"),
+            width=px(250), height=px(50), size=11, fg=WHITE, radius=px(14),
+            border=GREEN_ACCENT, parent_bg=PANEL
+        )
+        self.mode_opt_live.pack(pady=(0, px(8)))
+
+        self.mode_opt_file = self._button(
+            self.mode_dropdown, "○  FILE MODE (Sample Files)", CARD,
+            lambda: self._on_mode_dropdown_select("FILE"),
+            width=px(250), height=px(50), size=11, fg=WHITE, radius=px(14),
+            border=BORDER, parent_bg=PANEL
+        )
+        self.mode_opt_file.pack()
+
+    def _hide_mode_dropdown(self):
+        if hasattr(self, "mode_dropdown") and self.mode_dropdown.winfo_ismapped():
+            self.mode_dropdown.place_forget()
+
+    def _refresh_mode_ui(self):
+        is_live = (self.input_mode == "LIVE")
+        is_hi = (getattr(self, "lang", "EN") == "HI")
+        if hasattr(self, "mode_dd_hdr"):
+            self.mode_dd_hdr.config(text="इनपुट मोड चुनें" if is_hi else "SELECT INPUT MODE")
+        if hasattr(self, "mode_btn"):
+            if is_live:
+                self.mode_btn.config(
+                    text=("📷 मोड: लाइव ▾" if is_hi else "📷 MODE: LIVE ▾"),
+                    bg=CARD, border=GREEN_ACCENT, fg=WHITE
+                )
+            else:
+                self.mode_btn.config(
+                    text=("📂 मोड: फाइल ▾" if is_hi else "📂 MODE: FILE ▾"),
+                    bg=CARD, border=AMBER_WARN, fg=AMBER_WARN
+                )
+        if hasattr(self, "mode_opt_live") and hasattr(self, "mode_opt_file"):
+            live_lbl_on = "●  लाइव मोड (कैमरा)" if is_hi else "●  LIVE MODE (Camera)"
+            live_lbl_off = "○  लाइव मोड (कैमरा)" if is_hi else "○  LIVE MODE (Camera)"
+            file_lbl_on = "●  फाइल मोड (सैंपल फाइलें)" if is_hi else "●  FILE MODE (Sample Files)"
+            file_lbl_off = "○  फाइल मोड (सैंपल फाइलें)" if is_hi else "○  FILE MODE (Sample Files)"
+            if is_live:
+                self.mode_opt_live.config(
+                    text=live_lbl_on, bg=GREEN_PRIMARY, border=GREEN_ACCENT, fg=WHITE
+                )
+                self.mode_opt_file.config(
+                    text=file_lbl_off, bg=CARD, border=BORDER, fg=WHITE
+                )
+            else:
+                self.mode_opt_live.config(
+                    text=live_lbl_off, bg=CARD, border=BORDER, fg=WHITE
+                )
+                self.mode_opt_file.config(
+                    text=file_lbl_on, bg=AMBER_WARN, border=AMBER_WARN, fg=WHITE
+                )
+
+    def toggle_mode_dropdown(self):
+        if hasattr(self, "mode_dropdown") and self.mode_dropdown.winfo_ismapped():
+            self._hide_mode_dropdown()
+            return
+        self._refresh_mode_ui()
+        self.root.update_idletasks()
+        bx = self.mode_btn.winfo_rootx() - self.root.winfo_rootx()
+        max_x = max(self.px(10), self.W - self.px(280))
+        bx = max(self.px(10), min(bx, max_x))
+        by = self.TOP_H + self.px(2)
+        self.mode_dropdown.place(x=bx, y=by)
+        self.mode_dropdown.lift()
+
+    def _on_mode_dropdown_select(self, mode):
+        self._hide_mode_dropdown()
+        self.set_input_mode(mode, browse_on_file=(mode == "FILE"))
+
+    def set_input_mode(self, mode, browse_on_file=False):
+        mode = "LIVE" if str(mode).upper() == "LIVE" else "FILE"
+        is_hi = (getattr(self, "lang", "EN") == "HI")
+        if mode == "LIVE" and not self._has_camera():
+            # Camera is not connected — automatically default/fallback to File Mode
+            self.input_mode = "FILE"
+            self.paused = False
+            self.captured_frame = None
+            self.last_probs = None
+            self.last_raw_out = None
+            self._hide_crop_selection()
+            self._refresh_mode_ui()
+            self._reset_panel()
+            self._update_stats_bar()
+            self.quality_lbl.config(
+                text=(
+                    "कोई कैमरा जुड़ा नहीं है — स्वचालित रूप से फाइल मोड चुना गया (diagnosis_samples/)"
+                    if is_hi else
+                    "No camera connected — Automatically defaulted to File Mode (diagnosis_samples/)"
+                ),
+                fg=AMBER_WARN
+            )
+            return
+
+        self.input_mode = mode
+        self.paused = False
+        self.captured_frame = None
+        self.last_probs = None
+        self.last_raw_out = None
+        self._hide_crop_selection()
+        if mode == "FILE":
+            self._photo = None
+            self.canvas.itemconfig(self.img_item, image="")
+        self._refresh_mode_ui()
+        self._reset_panel()
+        self._update_stats_bar()
+        if mode == "FILE" and browse_on_file:
+            self.root.after(40, self.pick_image_from_file)
 
     # ---- 2. Split Screen Body ----
     def _build_body(self):
@@ -1784,7 +2797,7 @@ class AgriLensApp:
 
         self.CAM_W = left_w - 2 * pad - 4
         half_btn_w = self.CAM_W // 2 - px(5)
-        btn_h = px(42)
+        btn_h = px(52)
 
         # 1. BOTTOM: SEPARATE ACTION BUTTONS BAR ([CAPTURE LEAF / PICK FROM FILE] and [DIAGNOSE LEAF])
         btn_box = tk.Frame(left, bg=BG)
@@ -1792,116 +2805,164 @@ class AgriLensApp:
 
         # Button 1: CAPTURE (swaps to RETAKE when frozen, or PICK FROM FILE when no camera)
         self.capture_btn = self._button(
-            btn_box, "CAPTURE LEAF", GREEN_PRIMARY, self.handle_capture_or_retake,
-            width=half_btn_w, height=btn_h, size=11, fg=WHITE, radius=px(21), parent_bg=BG
+            btn_box, "📸  CAPTURE LEAF", GREEN_PRIMARY, self.handle_capture_or_retake,
+            width=half_btn_w, height=btn_h, size=13, fg=WHITE, radius=px(18), parent_bg=BG
         )
         self.capture_btn.pack(side="left", padx=(0, px(4)))
 
         # Button 2: DIAGNOSE (Runs AI Inference)
         self.diagnose_btn = self._button(
-            btn_box, "DIAGNOSE LEAF", CARD, self.handle_diagnose,
-            width=half_btn_w, height=btn_h, size=11, fg=WHITE, border=BORDER, radius=px(21), parent_bg=BG
+            btn_box, "🔍  DIAGNOSE LEAF", CARD, self.handle_diagnose,
+            width=half_btn_w, height=btn_h, size=13, fg=WHITE, border=GREEN_ACCENT, radius=px(18), parent_bg=BG
         )
         self.diagnose_btn.pack(side="right", padx=(px(4), 0))
 
         # 2. DIRECTLY ABOVE BUTTONS: IMAGE QUALITY AI STATUS BAR
-        quality_frame = tk.Frame(left, bg=PANEL, padx=px(6), pady=px(3))
-        quality_frame.pack(side="bottom", fill="x", padx=pad + 2, pady=(0, px(4)))
+        quality_frame = tk.Frame(
+            left, bg=PANEL, padx=px(8), pady=px(5),
+            highlightbackground=BORDER, highlightthickness=max(1, px(1))
+        )
+        quality_frame.pack(side="bottom", fill="x", padx=pad + 2, pady=(0, px(5)))
 
         self.quality_lbl = tk.Label(
             quality_frame, text="Leaf Quality AI: Align leaf inside box",
-            font=self.f(9, True), fg=MUTED, bg=PANEL, anchor="center",
-            wraplength=self.CAM_W - px(12)
+            font=self.f(10, True), fg=MUTED, bg=PANEL, anchor="center",
+            wraplength=self.CAM_W - px(14)
         )
         self.quality_lbl.pack(fill="x")
 
         # 3. LARGE 4:3 FULL-FOV CAMERA OUTPUT DISPLAY (Matches 640x480 webcam aspect ratio so 100% FoV is visible)
-        avail_cam_h = max(px(240), body_h - btn_h - px(46))
+        avail_cam_h = max(px(240), body_h - btn_h - px(54))
         fov_4_3_h = int(round(self.CAM_W * 3 / 4))
         self.CAM_H = min(avail_cam_h, fov_4_3_h)
 
         self.cam_border = tk.Frame(left, bg=CARD, padx=2, pady=2)
         self.cam_border.pack(side="top", pady=(pad, px(3)), expand=True)
 
-        # Clean Camera Canvas with subtle targeting frame
+        # Clean Camera Canvas with interactive crop selection handles
         self.canvas = tk.Canvas(self.cam_border, width=self.CAM_W, height=self.CAM_H,
                                 bg="#050a07", highlightthickness=0)
         self.canvas.pack()
-        self.canvas.bind("<Button-1>", lambda e: self.handle_capture_or_retake())
+        self.canvas.bind("<ButtonPress-1>", self._on_canvas_press)
+        self.canvas.bind("<B1-Motion>", self._on_canvas_drag)
+        self.canvas.bind("<ButtonRelease-1>", self._on_canvas_release)
+        self.canvas.bind("<Motion>", self._on_canvas_motion)
+        self.canvas.bind("<Double-Button-1>", self._on_canvas_double_click)
 
         cw, ch = self.CAM_W, self.CAM_H
+        self._img_disp_rect = (0, 0, cw, ch)
         self.img_item = self.canvas.create_image(cw // 2, ch // 2, anchor="center")
 
-        # Leaf Alignment Targeting Box - Covers complete Full-FoV image area
+        # Leaf Alignment Targeting Box - Covers complete Full-FoV image area in live mode
         margin = px(3)
         self.guide = self.canvas.create_rectangle(
             margin, margin, cw - margin, ch - margin,
             outline=GREEN_ACCENT, width=px(2), dash=(8, 5)
         )
 
+        # Interactive Manual Crop Selection Overlay (visible when image is captured or loaded)
+        self.crop_scrim_top = self.canvas.create_rectangle(
+            0, 0, 0, 0, fill="#020503", stipple="gray50", width=0, state="hidden", tags=("crop_ui", "crop_scrim")
+        )
+        self.crop_scrim_bottom = self.canvas.create_rectangle(
+            0, 0, 0, 0, fill="#020503", stipple="gray50", width=0, state="hidden", tags=("crop_ui", "crop_scrim")
+        )
+        self.crop_scrim_left = self.canvas.create_rectangle(
+            0, 0, 0, 0, fill="#020503", stipple="gray50", width=0, state="hidden", tags=("crop_ui", "crop_scrim")
+        )
+        self.crop_scrim_right = self.canvas.create_rectangle(
+            0, 0, 0, 0, fill="#020503", stipple="gray50", width=0, state="hidden", tags=("crop_ui", "crop_scrim")
+        )
+
+        self.crop_grid_lines = [
+            self.canvas.create_line(0, 0, 0, 0, fill=GREEN_GLOW, dash=(4, 4), width=1, state="hidden", tags=("crop_ui", "crop_grid"))
+            for _ in range(4)
+        ]
+
+        self.crop_rect = self.canvas.create_rectangle(
+            0, 0, 0, 0, outline=GREEN_ACCENT, width=px(2), state="hidden", tags=("crop_ui",)
+        )
+
+        self.crop_handles = {}
+        for h_key in ("nw", "n", "ne", "e", "se", "s", "sw", "w"):
+            self.crop_handles[h_key] = self.canvas.create_rectangle(
+                0, 0, 0, 0, fill=GREEN_ACCENT, outline=WHITE, width=max(1, px(2)),
+                state="hidden", tags=("crop_ui", f"handle_{h_key}")
+            )
+
+        self.crop_info_badge = self.canvas.create_text(
+            cw - px(10), ch - px(8), anchor="se", fill=WHITE, font=self.f(9, True),
+            text="DRAG HANDLES TO CROP LEAF  •  DOUBLE-TAP: FULL", state="hidden", tags=("crop_ui",)
+        )
+
         # Live webcam / File Mode indicator overlay (left-aligned so longer labels never clip)
         self.live_badge = self.canvas.create_text(
-            px(10), px(8), anchor="nw", fill=GREEN_ACCENT, font=self.f(9, True),
+            px(10), px(8), anchor="nw", fill=GREEN_ACCENT, font=self.f(10, True),
             text="LIVE WEBCAM"
         )
 
         self.msg_txt = self.canvas.create_text(
-            cw // 2, ch // 2, fill=MUTED, font=self.f(11),
+            cw // 2, ch // 2, fill=MUTED, font=self.f(12, True),
             justify="center", text="Connecting to webcam..."
         )
 
         # RIGHT SIDE - Farmer Diagnosis & Recommendations (Arranged cleanly for 7" 1024x600 screen)
-        right = tk.Frame(body, bg=PANEL, width=right_w - pad, height=body_h - 2 * pad)
+        right = tk.Frame(
+            body, bg=PANEL, width=right_w - pad, height=body_h - 2 * pad,
+            highlightbackground=BORDER, highlightthickness=max(1, px(1))
+        )
         right.pack(side="left", fill="both", expand=True, padx=(0, pad), pady=pad)
         right.pack_propagate(False)
-        rp = px(10)
-        wrap = right_w - pad - 2 * rp - px(6)
+        rp = px(12)
+        wrap = right_w - pad - 2 * rp - px(8)
 
-        self.banner_frame = tk.Frame(right, bg=GREY_BTN, padx=px(8), pady=px(5))
+        self.banner_frame = tk.Frame(right, bg=GREY_BTN, padx=px(10), pady=px(6))
         self.banner_frame.pack(fill="x")
 
         self.banner = tk.Label(
-            self.banner_frame, text="READY — AIM LEAF AT CAMERA", font=self.f(12, True),
+            self.banner_frame, text="READY — AIM LEAF AT CAMERA", font=self.f(13, True),
             bg=GREY_BTN, fg=WHITE, pady=px(2), wraplength=wrap
         )
         self.banner.pack(fill="x")
 
         info = tk.Frame(right, bg=PANEL)
-        info.pack(fill="x", padx=rp, pady=(px(6), 0))
+        info.pack(fill="x", padx=rp, pady=(px(7), 0))
 
-        self.plant_lbl = tk.Label(info, text="Mode: Auto-Detect (Beta Production)", font=self.f(10, True), fg=GREEN_ACCENT, bg=PANEL, anchor="w")
+        self.plant_lbl = tk.Label(info, text="Mode: Auto-Detect (Beta Production)", font=self.f(11, True), fg=GREEN_ACCENT, bg=PANEL, anchor="w")
         self.plant_lbl.pack(fill="x")
 
         self.disease_lbl = tk.Label(
             info, text="Aim leaf inside box -> Tap CAPTURE -> Tap DIAGNOSE",
-            font=self.f(12, True), fg=WHITE, bg=PANEL, anchor="w",
+            font=self.f(13, True), fg=WHITE, bg=PANEL, anchor="w",
             justify="left", wraplength=wrap
         )
-        self.disease_lbl.pack(fill="x")
+        self.disease_lbl.pack(fill="x", pady=(px(2), 0))
 
         # Confidence Bar
-        self.BAR_W, self.BAR_H = wrap, px(18)
+        self.BAR_W, self.BAR_H = wrap, px(22)
         self.bar = tk.Canvas(info, width=self.BAR_W, height=self.BAR_H, bg=CARD, highlightthickness=0)
-        self.bar.pack(anchor="w", pady=(px(5), 0))
+        self.bar.pack(anchor="w", pady=(px(6), 0))
 
-        tk.Frame(right, bg=BORDER, height=max(1, px(1))).pack(fill="x", padx=rp, pady=(px(7), px(4)))
+        tk.Frame(right, bg=BORDER, height=max(1, px(1))).pack(fill="x", padx=rp, pady=(px(8), px(5)))
 
-        tk.Label(
-            right, text="RECOMMENDED FARMER ACTIONS", font=self.f(10, True),
-            fg=WHITE, bg=PANEL, anchor="w"
-        ).pack(fill="x", padx=rp, pady=(0, px(4)))
+        self.rec_hdr_lbl = tk.Label(
+            right, text="RECOMMENDED FARMER ACTIONS", font=self.f(11, True),
+            fg=GREEN_ACCENT, bg=PANEL, anchor="w"
+        )
+        self.rec_hdr_lbl.pack(fill="x", padx=rp, pady=(0, px(5)))
 
         # Bottom Hardware / Latency Strip
         self.stats_lbl = tk.Label(
-            right, text=f"v{APP_VERSION}", font=self.f(8), fg=MUTED, bg=PANEL,
+            right, text=f"AGRILENS v{APP_VERSION}", font=self.f(8, True), fg=MUTED, bg=PANEL,
             anchor="w", justify="left", wraplength=wrap
         )
         self.stats_lbl.pack(side="bottom", fill="x", padx=rp, pady=(0, px(4)))
 
-        tk.Label(
+        self.disclaimer_lbl = tk.Label(
             right, text=DISCLAIMER, font=self.f(8), fg=MUTED, bg=PANEL,
             anchor="w", justify="left", wraplength=wrap
-        ).pack(side="bottom", fill="x", padx=rp)
+        )
+        self.disclaimer_lbl.pack(side="bottom", fill="x", padx=rp, pady=(0, px(2)))
 
         # Numbered recommendation rows
         steps_box = tk.Frame(right, bg=PANEL)
@@ -1909,15 +2970,15 @@ class AgriLensApp:
 
         self.step_rows = []
         for i in range(4):
-            row = tk.Frame(steps_box, bg=PANEL)
+            row = tk.Frame(steps_box, bg=CARD, padx=px(6), pady=px(4), highlightbackground=BORDER, highlightthickness=1)
             num = tk.Label(
-                row, text=str(i + 1), font=self.f(9, True),
-                bg=GREEN_PRIMARY, fg=WHITE, width=2
+                row, text=str(i + 1), font=self.f(10, True),
+                bg=GREEN_PRIMARY, fg=WHITE, width=2, pady=px(1)
             )
-            num.pack(side="left", anchor="n", padx=(0, px(7)), pady=(px(1), 0))
+            num.pack(side="left", anchor="n", padx=(0, px(8)), pady=(px(1), 0))
             txt = tk.Label(
-                row, text="", font=self.f(9), fg=WHITE, bg=PANEL,
-                anchor="w", justify="left", wraplength=wrap - px(32)
+                row, text="", font=self.f(10), fg=WHITE, bg=CARD,
+                anchor="w", justify="left", wraplength=wrap - px(46)
             )
             txt.pack(side="left", fill="x", expand=True)
             self.step_rows.append((row, num, txt))
@@ -1928,19 +2989,31 @@ class AgriLensApp:
     def _build_plant_picker(self):
         px = self.px
         self.picker = tk.Frame(self.root, bg=BG)
-        tk.Label(self.picker, text="SELECT CROP TO DIAGNOSE", font=self.f(20, True), fg=WHITE, bg=BG).pack(pady=(px(24), px(4)))
-        tk.Label(self.picker, text="Auto-detection mode automatically identifies all supported plant species",
-                 font=self.f(10), fg=MUTED, bg=BG).pack()
+        self.picker_title_lbl = tk.Label(self.picker, text="SELECT CROP TO DIAGNOSE", font=self.f(22, True), fg=WHITE, bg=BG)
+        self.picker_title_lbl.pack(pady=(px(26), px(4)))
+        self.picker_sub_lbl = tk.Label(
+            self.picker, text="Auto-detection mode automatically identifies all supported plant species",
+            font=self.f(11), fg=MUTED, bg=BG
+        )
+        self.picker_sub_lbl.pack()
 
         self.picker_grid = tk.Frame(self.picker, bg=BG)
         self.picker_grid.pack(expand=True)
 
-        self._button(self.picker, "REVERT TO SCANNER", GREY_BTN, self.close_overlays, width=px(210), height=px(52), size=11, radius=px(16), fg=WHITE, parent_bg=BG).pack(pady=(0, px(22)))
+        self.picker_back_btn = self._button(
+            self.picker, "← REVERT TO SCANNER", GREY_BTN, self.close_overlays,
+            width=px(260), height=px(56), size=12, radius=px(18), fg=WHITE, border=BORDER, parent_bg=BG
+        )
+        self.picker_back_btn.pack(pady=(0, px(24)))
 
     def _fill_plant_picker(self):
         for w in self.picker_grid.winfo_children():
             w.destroy()
-        options = [("ALL PLANTS (AUTO - BETA)", None)] + [(p.upper(), p) for p in self.plants]
+        is_hi = (getattr(self, "lang", "EN") == "HI")
+        if is_hi:
+            options = [("🌱 सभी फसलें (ऑटो - बीटा)", None)] + [(f"🌿 {translate_crop_hi(p)} ({p.upper()})", p) for p in self.plants]
+        else:
+            options = [("🌱 ALL PLANTS (AUTO - BETA)", None)] + [(f"🌿 {p.upper()}", p) for p in self.plants]
         cols = 3 if len(options) > 4 else 2
         for i, (text, value) in enumerate(options):
             color = GREEN_PRIMARY if value == self.selected_plant else CARD
@@ -1948,22 +3021,31 @@ class AgriLensApp:
             b = self._button(
                 self.picker_grid, text, color,
                 lambda v=value: self.select_plant(v),
-                width=self.px(220), height=self.px(58), size=11, fg=WHITE,
-                border=border, radius=self.px(16), parent_bg=BG
+                width=self.px(250), height=self.px(66), size=12, fg=WHITE,
+                border=border, radius=self.px(18), parent_bg=BG
             )
-            b.grid(row=i // cols, column=i % cols, padx=self.px(10), pady=self.px(10))
+            b.grid(row=i // cols, column=i % cols, padx=self.px(12), pady=self.px(12))
 
     def open_plant_picker(self):
+        self._hide_mode_dropdown()
         self._fill_plant_picker()
         self.picker.place(x=0, y=0, relwidth=1, relheight=1)
         self.picker.lift()
 
     def select_plant(self, plant):
         self.selected_plant = plant
+        is_hi = (getattr(self, "lang", "EN") == "HI")
         if plant is None:
-            self.plant_btn.config(text="SELECT CROP (AUTO)")
+            self.plant_btn.config(
+                text=("🌱 फसल: ऑटो (सभी)" if is_hi else "🌱 CROP: AUTO (ALL)"),
+                bg=CARD, border=GREEN_ACCENT, fg=WHITE
+            )
         else:
-            self.plant_btn.config(text=f"CROP: {plant.upper()}")
+            p_txt = translate_crop_hi(plant) if is_hi else plant.upper()
+            self.plant_btn.config(
+                text=(f"🌱 फसल: {p_txt}" if is_hi else f"🌱 CROP: {p_txt}"),
+                bg=GREEN_PRIMARY, border=GREEN_ACCENT, fg=WHITE
+            )
 
         if self.paused and self.last_probs:
             self._render_diagnosis(self.last_probs, self.last_raw_out)
@@ -2043,11 +3125,8 @@ class AgriLensApp:
                 btn.pack(side="left", padx=px(4))
 
     def open_password_screen(self):
-        self.entered_password = ""
-        self._update_pwd_display()
-        self.pwd_status_lbl.config(text="ENTER SYSTEM PASSWORD", fg=MUTED)
-        self.pwd_screen.place(x=0, y=0, relwidth=1, relheight=1)
-        self.pwd_screen.lift()
+        # Direct entry to Admin Panel (password disabled)
+        self.open_admin_panel()
 
     def _pwd_key_press(self, key):
         if len(self.entered_password) < 16:
@@ -2252,54 +3331,62 @@ class AgriLensApp:
 
         # Bottom-anchored CLOSE APPLICATION section so card_sys distributes cleanly
         exit_box = tk.Frame(card_sys, bg=PANEL)
-        exit_box.pack(side="bottom", fill="x", pady=(px(4), px(4)))
+        exit_box.pack(side="bottom", fill="x", pady=(px(2), px(2)))
 
-        tk.Frame(exit_box, bg=BORDER, height=max(1, px(1))).pack(fill="x", pady=(0, px(12)))
+        tk.Frame(exit_box, bg=BORDER, height=max(1, px(1))).pack(fill="x", pady=(0, px(8)))
 
         self.exit_btn = self._button(
             exit_box, "✕ CLOSE APPLICATION", RED_ALERT, self.close,
-            width=px(220), height=px(52), size=11, radius=px(14), fg=WHITE, parent_bg=PANEL
+            width=px(220), height=px(46), size=10, radius=px(14), fg=WHITE, parent_bg=PANEL
         )
-        self.exit_btn.pack(pady=(0, px(6)))
+        self.exit_btn.pack(pady=(0, px(3)))
 
         tk.Label(
             exit_box, text="Safely exit the kiosk and return to desktop",
-            font=self.f(9), fg=MUTED, bg=PANEL
+            font=self.f(8), fg=MUTED, bg=PANEL
         ).pack()
 
-        # Upper/Middle sections: Camera Status + Detect Webcam + GitHub Repo
-        cam_box = tk.Frame(card_sys, bg=CARD, padx=px(12), pady=px(10), highlightbackground=BORDER, highlightthickness=1)
-        cam_box.pack(fill="x", pady=(0, px(12)))
+        # Upper/Middle sections: Camera Status + Detect Webcam + Camera Panel + OTA Update
+        cam_box = tk.Frame(card_sys, bg=CARD, padx=px(12), pady=px(8), highlightbackground=BORDER, highlightthickness=1)
+        cam_box.pack(fill="x", pady=(0, px(8)))
 
         self.webcam_status_lbl = tk.Label(
-            cam_box, text="Checking camera...", font=self.f(10, True), fg=MUTED, bg=CARD, justify="center", wraplength=right_w - px(64)
+            cam_box, text="Checking camera...", font=self.f(9, True), fg=MUTED, bg=CARD, justify="center", wraplength=right_w - px(64)
         )
-        self.webcam_status_lbl.pack(pady=(0, px(8)))
+        self.webcam_status_lbl.pack(pady=(0, px(6)))
 
         self.detect_btn = self._button(
             cam_box, "🔍 DETECT WEBCAM", GREEN_PRIMARY, self._trigger_detect_webcam,
-            width=px(220), height=px(50), size=11, radius=px(14), fg=WHITE, parent_bg=CARD
+            width=px(220), height=px(44), size=10, radius=px(14), fg=WHITE, parent_bg=CARD
         )
-        self.detect_btn.pack(pady=(0, px(6)))
+        self.detect_btn.pack(pady=(0, px(4)))
 
         self.detect_msg_lbl = tk.Label(
             cam_box, text="Click to scan and connect USB webcam", font=self.f(8), fg=MUTED, bg=CARD, justify="center", wraplength=right_w - px(64)
         )
         self.detect_msg_lbl.pack()
 
-        # CAMERA CONTROL PANEL TAB BUTTON (Replaced GitHub Repo button)
+        # CAMERA CONTROL PANEL + OTA SOFTWARE UPDATE BUTTONS
         cam_tab_box = tk.Frame(card_sys, bg=PANEL)
-        cam_tab_box.pack(fill="x", pady=(px(4), 0))
+        cam_tab_box.pack(fill="x", pady=(px(2), 0))
 
         self.cam_ctrl_btn = self._button(
             cam_tab_box, "📷 CAMERA CONTROL PANEL", CARD, self.open_camera_panel,
-            width=px(240), height=px(52), size=10, radius=px(14), fg=GREEN_ACCENT, border=GREEN_ACCENT, parent_bg=PANEL
+            width=px(240), height=px(44), size=10, radius=px(14), fg=GREEN_ACCENT, border=GREEN_ACCENT, parent_bg=PANEL
         )
         self.cam_ctrl_btn.pack(pady=(0, px(6)))
-        tk.Label(
-            cam_tab_box, text=f"Camera Tuning & Focus Calibration\nAGRILENS v{APP_VERSION}",
-            font=self.f(8), fg=MUTED, bg=PANEL, justify="center"
-        ).pack()
+
+        self.ota_btn = self._button(
+            cam_tab_box, "☁ OTA UPDATE (INTERNET)", CARD, self._trigger_ota_update,
+            width=px(240), height=px(44), size=10, radius=px(14), fg=AMBER_WARN, border=AMBER_WARN, parent_bg=PANEL
+        )
+        self.ota_btn.pack(pady=(0, px(4)))
+
+        self.ota_status_lbl = tk.Label(
+            cam_tab_box, text=f"AGRILENS v{APP_VERSION} • Pull latest OTA update from GitHub",
+            font=self.f(8), fg=MUTED, bg=PANEL, justify="center", wraplength=right_w - px(36)
+        )
+        self.ota_status_lbl.pack()
 
     # ---- 5B. Camera Control Panel Tab ----
     def _build_camera_panel(self):
@@ -2732,14 +3819,21 @@ class AgriLensApp:
             "cam_flip_v": bool(self.camera.flip_v),
             "cam_auto_exp": bool(self.camera.auto_exp),
             "cam_auto_wb": bool(self.camera.auto_wb),
+            "cam_resolution": "%dx%d" % tuple(self.camera.resolution),
+            "history_enabled": bool(getattr(self, "history_enabled", True)),
+            "history_max_images": int(getattr(self, "history_max_images", 5000)),
+            **{k: v for k, v in (getattr(self, "history_sync_cfg", None) or {k2: DEFAULT_CONFIG[k2] for k2 in ("history_sync_enabled", "history_sync_remote", "history_sync_path", "history_sync_minutes")}).items()},
+            "language": getattr(self, "lang", "EN"),
+            "calibration_model_sha256": getattr(getattr(self, "classifier", None), "model_sha256", "") or "",
         }
         save_kiosk_config(cfg)
 
     def _reset_slider_defaults(self):
+        th, _src = resolve_gate_thresholds({}, getattr(getattr(self, "classifier", None), "model_sha256", ""))
         defaults = {
-            "confidence_threshold": int(CONFIDENCE_THRESHOLD * 100),
-            "ood_margin": int(OOD_MARGIN_THRESHOLD * 100),
-            "ood_logit": int(OOD_LOGIT_THRESHOLD * 10),
+            "confidence_threshold": int(round(th["confidence_threshold"] * 100)),
+            "ood_margin": int(round(th["ood_margin"] * 100)),
+            "ood_logit": int(round(th["ood_logit"] * 10)),
             "sharpness_min": int(SHARPNESS_MIN_THRESHOLD)
         }
         for key, (slider, spec) in self.sliders.items():
@@ -2774,6 +3868,7 @@ class AgriLensApp:
                 pass
 
     def open_admin_panel(self):
+        self._hide_mode_dropdown()
         for key, (slider, spec) in getattr(self, "sliders", {}).items():
             init_val = spec["get_initial"]()
             slider.config(command="")
@@ -2818,29 +3913,267 @@ class AgriLensApp:
 
         poll_scan()
 
+    def _trigger_ota_update(self, silent_boot=False):
+        """
+        Pulls the latest software & logos over the internet from GitHub immediately on event:
+        - Automatically on boot/startup (silent_boot=True)
+        - Manually when '☁ OTA UPDATE (INTERNET)' is tapped in Admin Console (silent_boot=False)
+        """
+        if silent_boot and os.path.exists(os.path.expanduser("~/.agrilens_ota_hold")):
+            print("AGRILENS OTA on hold (~/.agrilens_ota_hold, set by rollback.sh); automatic boot update skipped.")
+            return
+        if getattr(self, "_ota_in_progress", False):
+            if not silent_boot and hasattr(self, "ota_status_lbl"):
+                self.ota_status_lbl.config(text="OTA check already in progress...", fg=AMBER_WARN)
+            return
+        self._ota_in_progress = True
+
+        if not silent_boot:
+            if hasattr(self, "ota_btn"):
+                self.ota_btn.config(state="disabled", text="☁ CHECKING OTA...")
+            if hasattr(self, "ota_status_lbl"):
+                self.ota_status_lbl.config(text="Connecting to GitHub over internet for immediate OTA update...", fg=AMBER_WARN)
+            self.root.update_idletasks()
+
+        q = queue.Queue()
+
+        def ota_worker():
+            import hashlib
+            import py_compile
+            import shutil
+            import urllib.request
+
+            ota_files = [
+                ("main.py", os.path.join(APP_BASE_DIR, "main.py")),
+                ("labels.txt", os.path.join(APP_BASE_DIR, "labels.txt")),
+                ("logos/agrilens_logo.jpg", os.path.join(LOGOS_DIR, "agrilens_logo.jpg")),
+                ("logos/gundecha_logo.png", os.path.join(LOGOS_DIR, "gundecha_logo.png")),
+                ("HOW_TO_RUN_ON_RASPBERRY_PI.md", os.path.join(APP_BASE_DIR, "HOW_TO_RUN_ON_RASPBERRY_PI.md")),
+                ("setup_rpi.sh", os.path.join(APP_BASE_DIR, "setup_rpi.sh")),
+                ("run_agrilens.sh", os.path.join(APP_BASE_DIR, "run_agrilens.sh")),
+                ("ota_update.sh", os.path.join(APP_BASE_DIR, "ota_update.sh")),
+                ("setup_remote_ota.sh", os.path.join(APP_BASE_DIR, "setup_remote_ota.sh")),
+                ("rollback.sh", os.path.join(APP_BASE_DIR, "rollback.sh")),
+            ]
+            rollback_dir = os.path.join(APP_BASE_DIR, "rollback", f"v{APP_VERSION}")
+
+            def backup_for_rollback(path):
+                """Keeps a copy of the file of the running version before it is replaced (first copy wins)."""
+                try:
+                    if os.path.exists(path):
+                        rel = os.path.relpath(path, APP_BASE_DIR)
+                        dst = os.path.join(rollback_dir, rel)
+                        if not os.path.exists(dst):
+                            os.makedirs(os.path.dirname(dst), exist_ok=True)
+                            shutil.copy2(path, dst)
+                except Exception:
+                    pass
+
+            try:
+                os.makedirs(LOGOS_DIR, exist_ok=True)
+                legacy_assets = os.path.join(APP_BASE_DIR, "assets")
+                if os.path.exists(legacy_assets):
+                    shutil.rmtree(legacy_assets, ignore_errors=True)
+                ts = int(time.time())
+                updated_count = 0
+                remote_ver = APP_VERSION
+
+                for rel_url, dest_path in ota_files:
+                    url = f"{OTA_REPO_RAW_BASE}/{rel_url}?t={ts}"
+                    req = urllib.request.Request(
+                        url,
+                        headers={
+                            "User-Agent": f"AGRILENS-Kiosk/{APP_VERSION}",
+                            "Cache-Control": "no-cache",
+                        }
+                    )
+                    data = None
+                    last_err = None
+                    # On fresh reboot Wi-Fi may take a few seconds to come online; retry main.py briefly on boot
+                    attempts = 4 if (silent_boot and rel_url == "main.py") else 1
+                    for attempt in range(attempts):
+                        try:
+                            with urllib.request.urlopen(req, timeout=12) as resp:
+                                data = resp.read()
+                            break
+                        except Exception as e_file:
+                            last_err = e_file
+                            if attempt + 1 < attempts:
+                                time.sleep(2.5)
+                    if data is None:
+                        if rel_url == "main.py":
+                            raise RuntimeError(f"Internet/GitHub unreachable: {last_err}")
+                        continue
+
+                    if not data:
+                        continue
+
+                    if rel_url == "main.py":
+                        # Compile the downloaded main.py BEFORE anything (including the model) is replaced
+                        chk_path = os.path.join(APP_BASE_DIR, "main.py.ota_check")
+                        with open(chk_path, "wb") as f_chk:
+                            f_chk.write(data)
+                        try:
+                            py_compile.compile(chk_path, doraise=True)
+                        finally:
+                            try:
+                                os.remove(chk_path)
+                            except Exception:
+                                pass
+                        text_src = data.decode("utf-8", errors="replace")
+                        remote_ver = _extract_version_from_code(text_src)
+                        remote_model_sha = _extract_const_from_code(text_src, "MODEL_SHA256").lower()
+                        local_tuple = _parse_version_tuple(APP_VERSION)
+                        remote_tuple = _parse_version_tuple(remote_ver)
+                        if remote_tuple < local_tuple:
+                            q.put((
+                                "up_to_date",
+                                f"Downgrade blocked: Local v{APP_VERSION} is newer than remote v{remote_ver}."
+                            ))
+                            return
+                        if silent_boot and remote_tuple == local_tuple:
+                            q.put((
+                                "up_to_date",
+                                f"Up to date! Running latest version (v{APP_VERSION})."
+                            ))
+                            return
+
+                        # Check if trained ONNX model (agrilens.onnx) changed on GitHub via MODEL_SHA256
+                        model_dest = os.path.join(APP_BASE_DIR, "agrilens.onnx")
+                        local_model_sha = ""
+                        if os.path.exists(model_dest):
+                            try:
+                                with open(model_dest, "rb") as f_m:
+                                    local_model_sha = hashlib.sha256(f_m.read()).hexdigest().lower()
+                            except Exception:
+                                local_model_sha = ""
+                        if not os.path.exists(model_dest) or (remote_model_sha and local_model_sha != remote_model_sha):
+                            model_url = f"{OTA_REPO_RAW_BASE}/agrilens.onnx?t={ts}"
+                            m_req = urllib.request.Request(
+                                model_url,
+                                headers={
+                                    "User-Agent": f"AGRILENS-Kiosk/{APP_VERSION}",
+                                    "Cache-Control": "no-cache",
+                                }
+                            )
+                            with urllib.request.urlopen(m_req, timeout=60) as m_resp:
+                                m_data = m_resp.read()
+                            if m_data and len(m_data) > 1_000_000:
+                                dl_sha = hashlib.sha256(m_data).hexdigest().lower()
+                                if not remote_model_sha or dl_sha == remote_model_sha:
+                                    m_tmp = model_dest + ".ota_tmp"
+                                    with open(m_tmp, "wb") as f_mout:
+                                        f_mout.write(m_data)
+                                    backup_for_rollback(model_dest)
+                                    os.replace(m_tmp, model_dest)
+                                    updated_count += 1
+
+                    new_hash = hashlib.sha256(data).hexdigest()
+                    old_hash = ""
+                    if os.path.exists(dest_path):
+                        try:
+                            with open(dest_path, "rb") as f_old:
+                                old_hash = hashlib.sha256(f_old.read()).hexdigest()
+                        except Exception:
+                            old_hash = ""
+
+                    if new_hash != old_hash:
+                        tmp_path = dest_path + ".ota_tmp"
+                        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+                        with open(tmp_path, "wb") as f_out:
+                            f_out.write(data)
+                        if rel_url == "main.py":
+                            py_compile.compile(tmp_path, doraise=True)
+                        backup_for_rollback(dest_path)
+                        os.replace(tmp_path, dest_path)
+                        if dest_path.endswith(".sh") and platform.system() == "Linux":
+                            try:
+                                os.chmod(dest_path, 0o755)
+                            except Exception:
+                                pass
+                        updated_count += 1
+
+                if updated_count > 0:
+                    q.put(("updated", f"OTA Updated to v{remote_ver} ({updated_count} file(s))! Restarting now..."))
+                else:
+                    q.put(("up_to_date", f"Up to date! Running latest GitHub build (v{remote_ver})."))
+            except Exception as err:
+                q.put(("error", f"OTA Update failed: {err}"))
+
+        threading.Thread(target=ota_worker, daemon=True).start()
+
+        def poll_ota():
+            try:
+                status, msg = q.get_nowait()
+                self._ota_in_progress = False
+                if status == "updated":
+                    if hasattr(self, "ota_status_lbl"):
+                        self.ota_status_lbl.config(text=msg, fg=GREEN_ACCENT)
+                    if hasattr(self, "ota_btn"):
+                        self.ota_btn.config(text="✓ UPDATED — RESTARTING", bg=GREEN_PRIMARY, fg=WHITE)
+                    self.splash_logo_img = self._load_splash_logo()
+                    self.root.after(150, self._restart_application)
+                elif status == "up_to_date":
+                    if hasattr(self, "ota_status_lbl"):
+                        self.ota_status_lbl.config(text=msg, fg=GREEN_ACCENT)
+                    if hasattr(self, "ota_btn"):
+                        self.ota_btn.config(state="normal", text="☁ OTA UPDATE (INTERNET)")
+                    self.splash_logo_img = self._load_splash_logo()
+                else:
+                    if not silent_boot and hasattr(self, "ota_status_lbl"):
+                        self.ota_status_lbl.config(text=msg, fg=RED_ALERT)
+                    if hasattr(self, "ota_btn"):
+                        self.ota_btn.config(state="normal", text="☁ OTA UPDATE (INTERNET)")
+                return
+            except queue.Empty:
+                pass
+            if self.running:
+                self.root.after(50, poll_ota)
+
+        poll_ota()
+
+    def _restart_application(self):
+        """Cleanly saves settings, releases the camera, and restarts the kiosk process after OTA update."""
+        self.running = False
+        try:
+            self._sync_sliders_to_attributes()
+            self._save_current_settings()
+        except Exception:
+            pass
+        try:
+            if self.camera:
+                self.camera.close()
+        except Exception:
+            pass
+        try:
+            self.root.destroy()
+        except Exception:
+            pass
+        subprocess.Popen([sys.executable, os.path.abspath(__file__)], cwd=APP_BASE_DIR)
+        sys.exit(0)
+
     def _has_camera(self):
         return bool(self.camera and self.camera.kind != "none")
 
+    def _is_live_mode(self):
+        return bool(self.input_mode == "LIVE" and self._has_camera())
+
     def _on_detect_webcam_finished(self, ok, msg):
         if ok:
-            self.paused = False
-            self.captured_frame = None
+            self.set_input_mode("LIVE", browse_on_file=False)
             self.webcam_status_lbl.config(text=f"Connected:\n{self.camera.kind}", fg=GREEN_PRIMARY)
-            self.detect_msg_lbl.config(text="SUCCESS: Webcam connected and active!", fg=GREEN_PRIMARY)
+            self.detect_msg_lbl.config(text="SUCCESS: Webcam connected — Live Mode active!", fg=GREEN_PRIMARY)
             self.canvas.itemconfig(self.msg_txt, text="")
-            self._reset_panel()
-            self._update_stats_bar()
             self.detect_btn.config(state="normal", text="DETECT WEBCAM")
             self.root.after(750, self.close_overlays)
         else:
+            self.set_input_mode("FILE", browse_on_file=False)
             self.webcam_status_lbl.config(text="Current Status: No Webcam Found (File Mode Active)", fg=AMBER_WARN)
-            self.detect_msg_lbl.config(text=f"{msg} — Using PICK FROM FILE mode.", fg=AMBER_WARN)
-            if not self.paused:
-                self._reset_panel()
-            self._update_stats_bar()
+            self.detect_msg_lbl.config(text=f"{msg} — Defaulted to File Mode.", fg=AMBER_WARN)
             self.detect_btn.config(state="normal", text="DETECT WEBCAM")
 
     def close_overlays(self):
+        self._hide_mode_dropdown()
         was_admin = (hasattr(self, "admin") and self.admin.winfo_ismapped()) or (hasattr(self, "cam_panel") and self.cam_panel.winfo_ismapped())
         if was_admin:
             self._sync_sliders_to_attributes()
@@ -2870,6 +4203,8 @@ class AgriLensApp:
 
         threading.Thread(target=worker, daemon=True).start()
         self._poll_init_queue()
+        # Trigger immediate non-blocking OTA check on boot/startup
+        self.root.after(200, lambda: self._trigger_ota_update(silent_boot=True))
 
     def _poll_init_queue(self):
         try:
@@ -2883,29 +4218,73 @@ class AgriLensApp:
 
     def _on_bootstrap_complete(self, classifier, parsed, crops, plants):
         self.classifier = classifier
+        th, self.gate_source = resolve_gate_thresholds(getattr(self, "_loaded_cfg", {}), getattr(classifier, "model_sha256", ""))
+        self.threshold, self.ood_margin, self.ood_logit = th["confidence_threshold"], th["ood_margin"], th["ood_logit"]
+        print(f"AGRILENS {APP_VERSION}: model {getattr(classifier, 'mode', '?')}; rejection gates from {self.gate_source}: "
+              f"confidence {self.threshold:.2f}, margin {self.ood_margin:.2f}, logit {self.ood_logit:.2f}")
         self.parsed = parsed
         self.crops = crops
         self.plants = plants
+        self.bootstrap_done = True
 
-        self._reset_panel()
+        # Keep the startup logo displayed in the image window for the full 5 seconds on startup
+        elapsed = time.monotonic() - self.startup_start_ts
+        rem_ms = max(10, int(round((STARTUP_LOGO_SECONDS - elapsed) * 1000)))
         self._update_stats_bar()
         self._preview_loop()
+        self.root.after(rem_ms, self._finish_startup_splash)
+
+    def _finish_startup_splash(self):
+        if not self.running or not self.startup_splash_active:
+            return
+        self.startup_splash_active = False
+        self.last_activity_ts = time.monotonic()
+        self._hide_fullscreen_screensaver()
+        # Default to LIVE mode when camera is connected; auto-default to FILE mode if not connected
+        if self._has_camera():
+            self.set_input_mode("LIVE", browse_on_file=False)
+        else:
+            self.set_input_mode("FILE", browse_on_file=False)
 
     def _preview_loop(self):
         if not self.running:
             return
+
+        # 1. During 5-second startup full-screen screensaver: keep screensaver visible until timer or touch/click
+        if self.startup_splash_active:
+            self.root.after(int(1000 / PREVIEW_FPS), self._preview_loop)
+            return
+
+        # 2. Check for 3-minute inactivity -> activate full-screen logo screensaver and turn off camera
+        if (
+            not self.standby_active
+            and not self._waking_from_standby
+            and not self._file_dialog_open
+            and (time.monotonic() - self.last_activity_ts) >= INACTIVITY_TIMEOUT_SECONDS
+        ):
+            self._enter_inactivity_standby()
+            self.root.after(int(1000 / PREVIEW_FPS), self._preview_loop)
+            return
+
+        # 3. While in standby or waking camera: do not read camera frames
+        if self.standby_active or self._waking_from_standby:
+            self.root.after(int(1000 / PREVIEW_FPS), self._preview_loop)
+            return
+
         cam_panel_open = hasattr(self, "cam_panel") and self.cam_panel.winfo_ismapped()
-        if (not self.paused or cam_panel_open) and self._has_camera():
+        live_active = self._is_live_mode() and not self.paused
+        if (live_active or cam_panel_open) and self._has_camera():
             frame = self.camera.read()
             if frame is not None:
-                if not self.paused:
+                if live_active:
                     self.latest_frame = frame
                     self._show_image(frame)
                 if cam_panel_open:
                     self._update_camera_panel_preview(frame)
             elif not self._has_camera():
-                if not self.paused:
-                    self._reset_panel()
+                # Camera disconnected mid-session -> automatically fall back to File Mode
+                if self.input_mode == "LIVE":
+                    self.set_input_mode("FILE", browse_on_file=False)
                 if cam_panel_open:
                     self._update_camera_panel_preview(None)
                 self._update_stats_bar()
@@ -2929,47 +4308,374 @@ class AgriLensApp:
         return canvas_im
 
     def _show_image(self, img):
+        iw, ih = img.size
+        if iw > 0 and ih > 0:
+            scale = min(self.CAM_W / iw, self.CAM_H / ih)
+            nw = max(1, int(round(iw * scale)))
+            nh = max(1, int(round(ih * scale)))
+            ox = (self.CAM_W - nw) // 2
+            oy = (self.CAM_H - nh) // 2
+            self._img_disp_rect = (ox, oy, ox + nw, oy + nh)
+        else:
+            self._img_disp_rect = (0, 0, self.CAM_W, self.CAM_H)
+
         disp = self._render_full_fov(img, self.CAM_W, self.CAM_H)
         self._photo = ImageTk.PhotoImage(disp)
         self.canvas.itemconfig(self.img_item, image=self._photo)
         self.canvas.itemconfig(self.msg_txt, text="")
 
+    # ---- Interactive Manual Crop Selection Handle Methods ----
+    def _init_crop_selection(self, full_default=False):
+        ix0, iy0, ix1, iy1 = self._img_disp_rect
+        dw = max(1, ix1 - ix0)
+        dh = max(1, iy1 - iy0)
+        if full_default:
+            pad_x = self.px(4)
+            pad_y = self.px(4)
+        else:
+            # Default 14% inset automatically excludes phone bezels & fingers when showing a mobile screen
+            pad_x = max(self.px(20), int(round(dw * 0.14)))
+            pad_y = max(self.px(20), int(round(dh * 0.14)))
+        x0 = min(ix0 + dw // 3, ix0 + pad_x)
+        y0 = min(iy0 + dh // 3, iy0 + pad_y)
+        x1 = max(ix1 - dw // 3, ix1 - pad_x)
+        y1 = max(iy1 - dh // 3, iy1 - pad_y)
+        self.crop_box = (x0, y0, x1, y1)
+        self.canvas.itemconfig("crop_ui", state="normal")
+        self.canvas.tag_raise("crop_ui")
+        self.canvas.tag_raise(self.live_badge)
+        self._update_crop_overlay()
+
+    def _hide_crop_selection(self):
+        self.crop_box = None
+        self._crop_drag_mode = None
+        self.canvas.itemconfig("crop_ui", state="hidden")
+        self.canvas.config(cursor="")
+
+    def _get_handle_centers(self):
+        if not self.crop_box:
+            return {}
+        x0, y0, x1, y1 = self.crop_box
+        mx = (x0 + x1) // 2
+        my = (y0 + y1) // 2
+        return {
+            "nw": (x0, y0),
+            "n":  (mx, y0),
+            "ne": (x1, y0),
+            "e":  (x1, my),
+            "se": (x1, y1),
+            "s":  (mx, y1),
+            "sw": (x0, y1),
+            "w":  (x0, my),
+        }
+
+    def _update_crop_overlay(self):
+        if not self.crop_box:
+            return
+        x0, y0, x1, y1 = self.crop_box
+        cw, ch = self.CAM_W, self.CAM_H
+
+        # 1. Outer dimmed scrim rectangles (top, bottom, left, right)
+        self.canvas.coords(self.crop_scrim_top, 0, 0, cw, y0)
+        self.canvas.coords(self.crop_scrim_bottom, 0, y1, cw, ch)
+        self.canvas.coords(self.crop_scrim_left, 0, y0, x0, y1)
+        self.canvas.coords(self.crop_scrim_right, x1, y0, cw, y1)
+
+        # 2. Main crop rectangle border
+        self.canvas.coords(self.crop_rect, x0, y0, x1, y1)
+
+        # 3. Rule-of-thirds inner grid lines
+        bw = x1 - x0
+        bh = y1 - y0
+        gx1, gx2 = x0 + bw // 3, x0 + (2 * bw) // 3
+        gy1, gy2 = y0 + bh // 3, y0 + (2 * bh) // 3
+        self.canvas.coords(self.crop_grid_lines[0], gx1, y0, gx1, y1)
+        self.canvas.coords(self.crop_grid_lines[1], gx2, y0, gx2, y1)
+        self.canvas.coords(self.crop_grid_lines[2], x0, gy1, x1, gy1)
+        self.canvas.coords(self.crop_grid_lines[3], x0, gy2, x1, gy2)
+
+        # 4. 8 Corner & Edge Midpoint Grab Handles
+        hs = self.px(7)
+        for h_key, (hx, hy) in self._get_handle_centers().items():
+            self.canvas.coords(self.crop_handles[h_key], hx - hs, hy - hs, hx + hs, hy + hs)
+
+        # 5. Update crop pixel resolution badge
+        px0, py0, px1, py1 = self._get_crop_pixel_bounds()
+        pw, ph = max(1, px1 - px0), max(1, py1 - py0)
+        self.canvas.itemconfig(
+            self.crop_info_badge,
+            text=f"CROP: {pw}×{ph} px  •  DRAG HANDLES  •  DOUBLE-TAP: FULL"
+        )
+
+    def _get_crop_pixel_bounds(self):
+        if self.captured_frame is None:
+            return (0, 0, 224, 224)
+        iw, ih = self.captured_frame.size
+        if not self.crop_box:
+            return (0, 0, iw, ih)
+        ix0, iy0, ix1, iy1 = self._img_disp_rect
+        dw = max(1, ix1 - ix0)
+        dh = max(1, iy1 - iy0)
+        cx0, cy0, cx1, cy1 = self.crop_box
+
+        px0 = int(round((cx0 - ix0) * iw / dw))
+        py0 = int(round((cy0 - iy0) * ih / dh))
+        px1 = int(round((cx1 - ix0) * iw / dw))
+        py1 = int(round((cy1 - iy0) * ih / dh))
+
+        px0 = max(0, min(iw - 16, px0))
+        py0 = max(0, min(ih - 16, py0))
+        px1 = max(px0 + 16, min(iw, px1))
+        py1 = max(py0 + 16, min(ih, py1))
+        return (px0, py0, px1, py1)
+
+    def _get_cropped_leaf_image(self):
+        if self.captured_frame is None:
+            return self.latest_frame
+        if not self.crop_box:
+            return self.captured_frame
+        px0, py0, px1, py1 = self._get_crop_pixel_bounds()
+        return self.captured_frame.crop((px0, py0, px1, py1))
+
+    def _hit_test_crop_controls(self, x, y):
+        if not self.crop_box:
+            return None
+        hit_r = self.px(22)
+        best_h = None
+        best_d2 = hit_r * hit_r
+        for h_key, (hx, hy) in self._get_handle_centers().items():
+            d2 = (x - hx) ** 2 + (y - hy) ** 2
+            if d2 <= best_d2:
+                best_d2 = d2
+                best_h = h_key
+        if best_h:
+            return best_h
+
+        x0, y0, x1, y1 = self.crop_box
+        edge_tol = self.px(12)
+        if y0 - edge_tol <= y <= y1 + edge_tol:
+            if abs(x - x0) <= edge_tol:
+                return "w"
+            if abs(x - x1) <= edge_tol:
+                return "e"
+        if x0 - edge_tol <= x <= x1 + edge_tol:
+            if abs(y - y0) <= edge_tol:
+                return "n"
+            if abs(y - y1) <= edge_tol:
+                return "s"
+
+        if x0 <= x <= x1 and y0 <= y <= y1:
+            return "move"
+        return "new"
+
+    def _on_canvas_press(self, event):
+        self._hide_mode_dropdown()
+        if self.startup_splash_active or self.standby_active or self._waking_from_standby or time.monotonic() < self._wake_guard_until:
+            return
+        if not self.paused:
+            self.handle_capture_or_retake()
+            return
+        if self.captured_frame is None:
+            return
+        if not self.crop_box:
+            self._init_crop_selection()
+
+        mode = self._hit_test_crop_controls(event.x, event.y)
+        self._crop_drag_start = (event.x, event.y)
+        if mode == "new":
+            ix0, iy0, ix1, iy1 = self._img_disp_rect
+            sx = max(ix0, min(ix1, event.x))
+            sy = max(iy0, min(iy1, event.y))
+            min_s = self.px(44)
+            x0 = max(ix0, min(ix1 - min_s, sx - min_s // 2))
+            y0 = max(iy0, min(iy1 - min_s, sy - min_s // 2))
+            self.crop_box = (x0, y0, x0 + min_s, y0 + min_s)
+            self._crop_drag_start = (x0, y0)
+            self._crop_box_start = self.crop_box
+            self._crop_drag_mode = "se"
+            self._update_crop_overlay()
+        else:
+            self._crop_drag_mode = mode
+            self._crop_box_start = self.crop_box
+
+    def _on_canvas_drag(self, event):
+        if not self.paused or not self._crop_drag_mode or not self._crop_box_start:
+            return
+        ix0, iy0, ix1, iy1 = self._img_disp_rect
+        min_s = self.px(44)
+        sx, sy = self._crop_drag_start
+        dx = event.x - sx
+        dy = event.y - sy
+        bx0, by0, bx1, by1 = self._crop_box_start
+        mode = self._crop_drag_mode
+
+        if mode == "move":
+            bw = bx1 - bx0
+            bh = by1 - by0
+            nx0 = max(ix0, min(ix1 - bw, bx0 + dx))
+            ny0 = max(iy0, min(iy1 - bh, by0 + dy))
+            self.crop_box = (nx0, ny0, nx0 + bw, ny0 + bh)
+        else:
+            x0, y0, x1, y1 = bx0, by0, bx1, by1
+            if "w" in mode:
+                x0 = max(ix0, min(x1 - min_s, bx0 + dx))
+            if "e" in mode:
+                x1 = min(ix1, max(x0 + min_s, bx1 + dx))
+            if "n" in mode:
+                y0 = max(iy0, min(y1 - min_s, by0 + dy))
+            if "s" in mode:
+                y1 = min(iy1, max(y0 + min_s, by1 + dy))
+            self.crop_box = (x0, y0, x1, y1)
+
+        self._update_crop_overlay()
+
+    def _on_canvas_release(self, event):
+        if not self.paused or not self._crop_drag_mode:
+            return
+        self._crop_drag_mode = None
+        self._crop_box_start = None
+        cropped = self._get_cropped_leaf_image()
+        if cropped is not None:
+            is_hi = (getattr(self, "lang", "EN") == "HI")
+            px0, py0, px1, py1 = self._get_crop_pixel_bounds()
+            pw, ph = max(1, px1 - px0), max(1, py1 - py0)
+            score, rating, q_msg, q_color = LeafQualityAI.assess(cropped, self.sharpness_min, lang=self.lang)
+            self.quality_lbl.config(
+                text=(f"चयनित भाग ({pw}×{ph} px) | {q_msg}" if is_hi else f"Selected Crop ({pw}×{ph} px) | {q_msg}"),
+                fg=q_color
+            )
+            if self.last_probs is not None:
+                self.banner_frame.config(bg=GREEN_PRIMARY)
+                self.banner.config(
+                    text=("क्रॉप क्षेत्र बदला गया — अभी जांचें दबाएं" if is_hi else "CROP SELECTION ADJUSTED — TAP DIAGNOSE NOW"),
+                    bg=GREEN_PRIMARY, fg=WHITE
+                )
+                self.diagnose_btn.config(text="🔍  अभी जांचें" if is_hi else "🔍  DIAGNOSE NOW", bg=GREEN_PRIMARY, border=GREEN_ACCENT, fg=WHITE)
+
+    def _on_canvas_double_click(self, event):
+        if self.paused and self.captured_frame is not None:
+            is_hi = (getattr(self, "lang", "EN") == "HI")
+            self._init_crop_selection(full_default=True)
+            cropped = self._get_cropped_leaf_image()
+            score, rating, q_msg, q_color = LeafQualityAI.assess(cropped, self.sharpness_min, lang=self.lang)
+            self.quality_lbl.config(
+                text=(f"पूर्ण चित्र चयनित | {q_msg}" if is_hi else f"Full Image Selected | {q_msg}"),
+                fg=q_color
+            )
+
+    def _on_canvas_motion(self, event):
+        if not self.paused or not self.crop_box:
+            self.canvas.config(cursor="hand2")
+            return
+        mode = self._hit_test_crop_controls(event.x, event.y)
+        cursor_map = {
+            "nw": "top_left_corner",
+            "ne": "top_right_corner",
+            "sw": "bottom_left_corner",
+            "se": "bottom_right_corner",
+            "n": "sb_v_double_arrow",
+            "s": "sb_v_double_arrow",
+            "w": "sb_h_double_arrow",
+            "e": "sb_h_double_arrow",
+            "move": "fleur",
+            "new": "crosshair",
+        }
+        self.canvas.config(cursor=cursor_map.get(mode, "hand2"))
+
     def _reset_panel(self):
         has_cam = self._has_camera()
+        is_live = self._is_live_mode()
+        is_hi = (getattr(self, "lang", "EN") == "HI")
+        self._refresh_mode_ui()
+        if not self.paused:
+            self._hide_crop_selection()
+            self.canvas.itemconfig(self.guide, state="normal")
         self.banner_frame.config(bg=GREY_BTN)
         if self.selected_plant is None:
-            self.plant_lbl.config(text="Mode: Auto-Detect (Beta Production)")
+            self.plant_lbl.config(text="मोड: ऑटो-डिटेक्ट (बीटा)" if is_hi else "Mode: Auto-Detect (Beta Production)")
         else:
-            self.plant_lbl.config(text=f"Selected Plant: {self.selected_plant.upper()}")
+            p_txt = translate_crop_hi(self.selected_plant) if is_hi else self.selected_plant.upper()
+            self.plant_lbl.config(text=f"चयनित फसल: {p_txt}" if is_hi else f"Selected Plant: {p_txt}")
 
-        if has_cam:
-            self.banner.config(text="READY — AIM LEAF AT CAMERA", bg=GREY_BTN, fg=WHITE)
-            self.disease_lbl.config(text="Aim leaf inside box -> Tap CAPTURE -> Tap DIAGNOSE")
-            self.capture_btn.config(text="CAPTURE LEAF", bg=GREEN_PRIMARY, fg=WHITE)
-            self.canvas.itemconfig(self.live_badge, text="LIVE WEBCAM", fill=GREEN_ACCENT)
-            self.canvas.itemconfig(self.msg_txt, text="")
-            self.quality_lbl.config(text="Leaf Quality AI: Align leaf inside box", fg=MUTED)
-        else:
-            self.banner.config(text="READY — PICK LEAF IMAGE FROM FILE", bg=GREY_BTN, fg=WHITE)
-            self.disease_lbl.config(text="Tap PICK FROM FILE -> Select leaf image -> Tap DIAGNOSE")
-            self.capture_btn.config(text="PICK FROM FILE", bg=GREEN_PRIMARY, fg=WHITE)
-            self.canvas.itemconfig(self.live_badge, text="FILE MODE (NO CAMERA)", fill=AMBER_WARN)
-            if not self.paused:
-                self.canvas.itemconfig(
-                    self.msg_txt,
-                    text=(
-                        "No camera connected — File Mode Active\n\n"
-                        "Tap 'PICK FROM FILE' below (or click here)\n"
-                        "Folder: diagnosis_samples/ (Apple, Mango, Potato, Tomato)"
-                    )
+        if is_live:
+            self.banner.config(
+                text=("तैयार — पत्ती को कैमरे के सामने रखें" if is_hi else "READY — AIM LEAF AT CAMERA"),
+                bg=GREY_BTN, fg=WHITE
+            )
+            self.disease_lbl.config(
+                text=(
+                    "पत्ती बॉक्स में रखें -> फोटो लें -> हैंडल खींचें -> पत्ती जांचें दबाएं"
+                    if is_hi else
+                    "Aim leaf -> Tap CAPTURE -> Drag Crop Handles -> Tap DIAGNOSE"
                 )
+            )
+            self.capture_btn.config(text="📸  फोटो लें" if is_hi else "📸  CAPTURE LEAF", bg=GREEN_PRIMARY, fg=WHITE)
+            self.canvas.itemconfig(self.live_badge, text="लाइव कैमरा" if is_hi else "LIVE WEBCAM", fill=GREEN_ACCENT)
+            self.canvas.itemconfig(self.msg_txt, text="")
             self.quality_lbl.config(
-                text="File Mode: Pick leaf image from diagnosis_samples/ (Apple, Mango, Potato, Tomato)",
+                text=("पत्ती गुणवत्ता एआई: पत्ती को बॉक्स के अंदर रखें" if is_hi else "Leaf Quality AI: Align leaf inside box"),
+                fg=MUTED
+            )
+        else:
+            self.banner.config(
+                text=("फाइल मोड — फाइल से पत्ती की फोटो चुनें" if is_hi else "FILE MODE — PICK LEAF IMAGE FROM FILE"),
+                bg=GREY_BTN, fg=WHITE
+            )
+            self.disease_lbl.config(
+                text=(
+                    "फाइल से चुनें दबाएं -> क्रॉप हैंडल खींचें -> पत्ती जांचें दबाएं"
+                    if is_hi else
+                    "Tap PICK FROM FILE -> Drag Crop Handles -> Tap DIAGNOSE"
+                )
+            )
+            self.capture_btn.config(text="📂  फाइल से चुनें" if is_hi else "📂  PICK FROM FILE", bg=GREEN_PRIMARY, fg=WHITE)
+            if is_hi:
+                badge_txt = "फाइल मोड (सैंपल)" if has_cam else "फाइल मोड (कैमरा नहीं)"
+            else:
+                badge_txt = "FILE MODE (SAMPLES)" if has_cam else "FILE MODE (NO CAMERA)"
+            self.canvas.itemconfig(self.live_badge, text=badge_txt, fill=AMBER_WARN)
+            if not self.paused:
+                self._photo = None
+                self.canvas.itemconfig(self.img_item, image="")
+                if is_hi:
+                    header_msg = (
+                        "फाइल मोड चयनित — डिफ़ॉल्ट सैंपल फाइलें ब्राउज़ करें"
+                        if has_cam else
+                        "कोई कैमरा जुड़ा नहीं है — डिफ़ॉल्ट फाइल मोड सक्रिय"
+                    )
+                    self.canvas.itemconfig(
+                        self.msg_txt,
+                        text=(
+                            f"{header_msg}\n\n"
+                            "नीचे 'फाइल से चुनें' दबाएं (या यहाँ क्लिक करें)\n"
+                            "फ़ोल्डर: diagnosis_samples/ (सेब, आम, आलू, टमाटर)"
+                        )
+                    )
+                else:
+                    header_msg = (
+                        "File Mode Selected — Browse Default Sample Files"
+                        if has_cam else
+                        "No camera connected — Defaulted to File Mode"
+                    )
+                    self.canvas.itemconfig(
+                        self.msg_txt,
+                        text=(
+                            f"{header_msg}\n\n"
+                            "Tap 'PICK FROM FILE' below (or click here)\n"
+                            "Folder: diagnosis_samples/ (Apple, Mango, Potato, Tomato)"
+                        )
+                    )
+            self.quality_lbl.config(
+                text=(
+                    "फाइल मोड: diagnosis_samples/ में पत्ती के सैंपल चुनें (सेब, आम, आलू, टमाटर)"
+                    if is_hi else
+                    "File Mode: Browse leaf samples in diagnosis_samples/ (Apple, Mango, Potato, Tomato)"
+                ),
                 fg=MUTED
             )
 
-        self.diagnose_btn.config(text="DIAGNOSE LEAF", bg=CARD, fg=WHITE)
-        self._draw_bar(0, GREY_BTN, "Waiting for leaf...")
+        self.diagnose_btn.config(text="🔍  पत्ती जांचें" if is_hi else "🔍  DIAGNOSE LEAF", bg=CARD, border=GREEN_ACCENT, fg=WHITE)
+        self._draw_bar(0, GREY_BTN, "पत्ती की प्रतीक्षा है..." if is_hi else "Waiting for leaf...")
         for row, num, txt in self.step_rows:
             num.config(bg=GREEN_PRIMARY, fg=WHITE)
             txt.config(text="")
@@ -2978,7 +4684,11 @@ class AgriLensApp:
 
     # ---- 7. SEPARATE ACTIONS: Capture / Pick from File, Retake, and Diagnose ----
     def pick_image_from_file(self):
-        """Opens file picker inside the fixed diagnosis_samples/ folder structure when camera is unavailable."""
+        """Opens file picker inside the fixed diagnosis_samples/ folder structure when File Mode is active."""
+        self._hide_mode_dropdown()
+        if self.startup_splash_active or self.standby_active or self._waking_from_standby or time.monotonic() < self._wake_guard_until:
+            return False
+        is_hi = (getattr(self, "lang", "EN") == "HI")
         base_dir = ensure_diagnosis_samples_dir()
         init_dir = base_dir
         if self.selected_plant:
@@ -2991,15 +4701,21 @@ class AgriLensApp:
         except Exception:
             pass
 
-        filepath = filedialog.askopenfilename(
-            parent=self.root,
-            initialdir=init_dir,
-            title="Select Leaf Image for Diagnosis (diagnosis_samples)",
-            filetypes=[
-                ("Leaf Images", "*.jpg *.jpeg *.png *.bmp *.webp *.JPG *.JPEG *.PNG"),
-                ("All Files", "*.*"),
-            ],
-        )
+        self._file_dialog_open = True
+        self.last_activity_ts = time.monotonic()
+        try:
+            filepath = filedialog.askopenfilename(
+                parent=self.root,
+                initialdir=init_dir,
+                title="जांच के लिए पत्ती की फोटो चुनें (diagnosis_samples)" if is_hi else "Select Leaf Image for Diagnosis (diagnosis_samples)",
+                filetypes=[
+                    ("Leaf Images", "*.jpg *.jpeg *.png *.bmp *.webp *.JPG *.JPEG *.PNG"),
+                    ("All Files", "*.*"),
+                ],
+            )
+        finally:
+            self._file_dialog_open = False
+            self.last_activity_ts = time.monotonic()
         if not filepath or not os.path.isfile(filepath):
             return False
 
@@ -3007,126 +4723,162 @@ class AgriLensApp:
             with Image.open(filepath) as raw_im:
                 loaded_img = raw_im.convert("RGB")
         except Exception as e:
-            self.quality_lbl.config(text=f"Could not open image file: {e}", fg=RED_ALERT)
+            self.quality_lbl.config(
+                text=(f"फोटो फाइल नहीं खुल सकी: {e}" if is_hi else f"Could not open image file: {e}"),
+                fg=RED_ALERT
+            )
             return False
 
         self.latest_frame = loaded_img
+        self.captured_frame = loaded_img
         self.last_probs = None
         self.last_raw_out = None
-        isolated_leaf, outline_ok, info = LeafOutlineSegmenter.extract_leaf(loaded_img)
 
         self.paused = True
         self.canvas.itemconfig(self.guide, state="hidden")
         short_name = os.path.basename(filepath)
         if len(short_name) > 26:
             short_name = short_name[:23] + "..."
+        self.last_file_short_name = short_name
+        self.last_file_path = filepath
 
-        if outline_ok and isolated_leaf is not None:
-            self.captured_frame = isolated_leaf
-            self._show_image(self.captured_frame)
-            self.canvas.itemconfig(self.live_badge, text=f"FILE ROI: {short_name}", fill=GREEN_ACCENT)
+        self._show_image(self.captured_frame)
+        self._init_crop_selection()
+        self.canvas.itemconfig(
+            self.live_badge,
+            text=(f"फाइल: {short_name} (क्रॉप समायोजित करें)" if is_hi else f"FILE: {short_name} (ADJUST CROP)"),
+            fill=GREEN_ACCENT
+        )
 
-            score, rating, q_msg, q_color = LeafQualityAI.assess(self.captured_frame, self.sharpness_min)
-            self.quality_lbl.config(text=f"File Loaded ({short_name}) | {q_msg}", fg=q_color)
-            self.banner_frame.config(bg=GREEN_PRIMARY)
-            self.banner.config(text="LEAF IMAGE LOADED — READY TO DIAGNOSE", bg=GREEN_PRIMARY, fg=WHITE)
-            self.disease_lbl.config(text="Leaf image loaded from file. Tap DIAGNOSE NOW.")
-        else:
-            self.captured_frame = loaded_img
-            self._show_image(self.captured_frame)
-            self.canvas.itemconfig(self.live_badge, text=f"FILE: {short_name}", fill=AMBER_WARN)
+        cropped = self._get_cropped_leaf_image()
+        score, rating, q_msg, q_color = LeafQualityAI.assess(cropped, self.sharpness_min, lang=self.lang)
+        self.quality_lbl.config(
+            text=(f"पत्ती क्रॉप करने के लिए हैंडल खींचें ({short_name}) | {q_msg}" if is_hi else f"Drag handles to crop leaf ({short_name}) | {q_msg}"),
+            fg=q_color
+        )
+        self.banner_frame.config(bg=GREEN_PRIMARY)
+        self.banner.config(
+            text=("क्रॉप हैंडल समायोजित करें -> अभी जांचें दबाएं" if is_hi else "ADJUST CROP HANDLES -> TAP DIAGNOSE NOW"),
+            bg=GREEN_PRIMARY, fg=WHITE
+        )
+        self.disease_lbl.config(
+            text=(
+                "सटीक पत्ती क्षेत्र चुनने के लिए फोटो पर हरे हैंडल खींचें, फिर 'अभी जांचें' दबाएं।"
+                if is_hi else
+                "Drag green handles on image to select exact leaf area, then tap DIAGNOSE NOW."
+            )
+        )
 
-            score, rating, q_msg, q_color = LeafQualityAI.assess(self.captured_frame, self.sharpness_min)
-            self.quality_lbl.config(text=f"File Loaded ({short_name}) | {q_msg}", fg=q_color)
-            self.banner_frame.config(bg=CARD)
-            self.banner.config(text="IMAGE LOADED (FULL FRAME) — READY TO DIAGNOSE", bg=CARD, fg=WHITE)
-            self.disease_lbl.config(text="Image loaded from file. Tap DIAGNOSE NOW.")
-
-        self.capture_btn.config(text="PICK FROM FILE", bg=AMBER_WARN, fg=WHITE)
-        self.diagnose_btn.config(text="DIAGNOSE NOW", bg=GREEN_PRIMARY, fg=WHITE)
+        self.capture_btn.config(text="📂  फाइल से चुनें" if is_hi else "📂  PICK FROM FILE", bg=AMBER_WARN, fg=WHITE)
+        self.diagnose_btn.config(text="🔍  अभी जांचें" if is_hi else "🔍  DIAGNOSE NOW", bg=GREEN_PRIMARY, border=GREEN_ACCENT, fg=WHITE)
         return True
 
     def handle_capture_or_retake(self):
-        """Toggles between CAPTURE/RETAKE when camera is available, or PICK FROM FILE when no camera is connected."""
-        if not self._has_camera():
+        """Toggles between CAPTURE/RETAKE in Live Mode, or opens PICK FROM FILE in File Mode."""
+        self._hide_mode_dropdown()
+        if self.startup_splash_active or self.standby_active or self._waking_from_standby or time.monotonic() < self._wake_guard_until:
+            return
+        if not self._is_live_mode():
             self.pick_image_from_file()
             return
 
+        is_hi = (getattr(self, "lang", "EN") == "HI")
         if not self.paused:
-            # 1. ACTION: CAPTURE
+            # 1. ACTION: CAPTURE (Freezes frame and activates manual crop selection handles)
             if self.latest_frame is not None:
-                isolated_leaf, outline_ok, info = LeafOutlineSegmenter.extract_leaf(self.latest_frame)
-
                 self.paused = True
+                self.captured_frame = self.latest_frame
                 self.canvas.itemconfig(self.guide, state="hidden")
+                self._show_image(self.captured_frame)
+                self._init_crop_selection()
+                self.canvas.itemconfig(
+                    self.live_badge,
+                    text=("फोटो ली गई — क्रॉप करने हेतु हैंडल खींचें" if is_hi else "CAPTURED — DRAG HANDLES TO CROP"),
+                    fill=GREEN_ACCENT
+                )
 
-                if outline_ok and isolated_leaf is not None:
-                    self.captured_frame = isolated_leaf
-                    self._show_image(self.captured_frame)
-                    self.canvas.itemconfig(self.live_badge, text="LEAF ROI ISOLATED", fill=GREEN_ACCENT)
+                cropped = self._get_cropped_leaf_image()
+                score, rating, q_msg, q_color = LeafQualityAI.assess(cropped, self.sharpness_min, lang=self.lang)
+                self.quality_lbl.config(
+                    text=(f"पत्ती का भाग चुनने के लिए हैंडल खींचें | {q_msg}" if is_hi else f"Drag handles to select leaf area | {q_msg}"),
+                    fg=q_color
+                )
+                self.banner_frame.config(bg=GREEN_PRIMARY)
+                self.banner.config(
+                    text=("क्रॉप हैंडल समायोजित करें -> अभी जांचें दबाएं" if is_hi else "ADJUST CROP HANDLES -> TAP DIAGNOSE NOW"),
+                    bg=GREEN_PRIMARY, fg=WHITE
+                )
+                self.disease_lbl.config(
+                    text=(
+                        "सटीक पत्ती क्षेत्र चुनने के लिए हरे हैंडल खींचें, फिर 'अभी जांचें' दबाएं।"
+                        if is_hi else
+                        "Drag green handles to select exact leaf area, then tap DIAGNOSE NOW."
+                    )
+                )
 
-                    score, rating, q_msg, q_color = LeafQualityAI.assess(self.captured_frame, self.sharpness_min)
-                    self.quality_lbl.config(text=f"Leaf ROI Isolated | {q_msg}", fg=q_color)
-                    self.banner_frame.config(bg=GREEN_PRIMARY)
-                    self.banner.config(text="LEAF OUTLINE ISOLATED — READY TO DIAGNOSE", bg=GREEN_PRIMARY, fg=WHITE)
-                    self.disease_lbl.config(text="Leaf region focused cleanly. Tap DIAGNOSE NOW.")
-                else:
-                    self.captured_frame = self.latest_frame
-                    self._show_image(self.captured_frame)
-                    self.canvas.itemconfig(self.live_badge, text="CAPTURED (FULL FRAME)", fill=AMBER_WARN)
-
-                    score, rating, q_msg, q_color = LeafQualityAI.assess(self.captured_frame, self.sharpness_min)
-                    self.quality_lbl.config(text=f"Full Frame Image | {q_msg}", fg=q_color)
-                    self.banner_frame.config(bg=CARD)
-                    self.banner.config(text="IMAGE CAPTURED (FULL FRAME) — READY TO DIAGNOSE", bg=CARD, fg=WHITE)
-                    self.disease_lbl.config(text="Complete image captured. Tap DIAGNOSE NOW.")
-
-                # Always move ahead: swap Capture to RETAKE and Diagnose to DIAGNOSE NOW
-                self.capture_btn.config(text="RETAKE LEAF", bg=AMBER_WARN, fg=WHITE)
-                self.diagnose_btn.config(text="DIAGNOSE NOW", bg=GREEN_PRIMARY, fg=WHITE)
+                # Swap Capture to RETAKE and Diagnose to DIAGNOSE NOW
+                self.capture_btn.config(text="↺  पुनः फोटो लें" if is_hi else "↺  RETAKE LEAF", bg=AMBER_WARN, fg=WHITE)
+                self.diagnose_btn.config(text="🔍  अभी जांचें" if is_hi else "🔍  DIAGNOSE NOW", bg=GREEN_PRIMARY, border=GREEN_ACCENT, fg=WHITE)
             else:
-                self.quality_lbl.config(text="Camera not ready. Tap PICK FROM FILE or check USB webcam.", fg=RED_ALERT)
+                self.quality_lbl.config(
+                    text=("कैमरा तैयार नहीं है। फाइल मोड चुनें या USB वेबकैम जांचें।" if is_hi else "Camera not ready. Switch to File Mode or check USB webcam."),
+                    fg=RED_ALERT
+                )
         else:
-            # 2. ACTION: RETAKE (Unfreeze)
+            # 2. ACTION: RETAKE (Unfreeze and hide crop handles)
             self.paused = False
             self.captured_frame = None
             self.last_probs = None
             self.last_raw_out = None
+            self._hide_crop_selection()
             self.canvas.itemconfig(self.guide, state="normal")
             self._reset_panel()
             self._update_stats_bar()
 
     def handle_diagnose(self):
-        """Runs MobileNetV4 inference on the captured (or file-loaded) frame."""
-        if not self._has_camera() and self.captured_frame is None:
+        """Runs MobileNetV4 inference strictly on the manually cropped leaf region."""
+        self._hide_mode_dropdown()
+        if self.startup_splash_active or self.standby_active or self._waking_from_standby or time.monotonic() < self._wake_guard_until:
+            return
+        if not self._is_live_mode() and self.captured_frame is None:
             if not self.pick_image_from_file():
                 return
 
-        if self.captured_frame is None and self.latest_frame is not None:
-            # If user directly pressed DIAGNOSE while live, attempt outline capture or fallback
-            isolated_leaf, outline_ok, info = LeafOutlineSegmenter.extract_leaf(self.latest_frame)
+        is_hi = (getattr(self, "lang", "EN") == "HI")
+        if self._is_live_mode() and self.captured_frame is None and self.latest_frame is not None:
+            # If user directly pressed DIAGNOSE while live, capture frame and initialize crop box first
             self.paused = True
-            if outline_ok and isolated_leaf is not None:
-                self.captured_frame = isolated_leaf
-                self.canvas.itemconfig(self.live_badge, text="LEAF ROI ISOLATED", fill=GREEN_ACCENT)
-            else:
-                self.captured_frame = self.latest_frame
-                self.canvas.itemconfig(self.live_badge, text="CAPTURED (FULL FRAME)", fill=AMBER_WARN)
-
-            self._show_image(self.captured_frame)
+            self.captured_frame = self.latest_frame
             self.canvas.itemconfig(self.guide, state="hidden")
-            score, rating, q_msg, q_color = LeafQualityAI.assess(self.captured_frame, self.sharpness_min)
-            self.quality_lbl.config(text=q_msg, fg=q_color)
-            self.capture_btn.config(text="RETAKE LEAF" if self._has_camera() else "PICK FROM FILE", bg=AMBER_WARN, fg=WHITE)
-            self.diagnose_btn.config(text="DIAGNOSE NOW", bg=GREEN_PRIMARY, fg=WHITE)
+            self._show_image(self.captured_frame)
+            self._init_crop_selection()
+            self.canvas.itemconfig(
+                self.live_badge,
+                text=("फोटो ली गई — क्रॉप करने हेतु हैंडल खींचें" if is_hi else "CAPTURED — DRAG HANDLES TO CROP"),
+                fill=GREEN_ACCENT
+            )
+            self.capture_btn.config(text="↺  पुनः फोटो लें" if is_hi else "↺  RETAKE LEAF", bg=AMBER_WARN, fg=WHITE)
+            self.diagnose_btn.config(text="🔍  अभी जांचें" if is_hi else "🔍  DIAGNOSE NOW", bg=GREEN_PRIMARY, border=GREEN_ACCENT, fg=WHITE)
 
-        target_img = self.captured_frame if self.captured_frame is not None else self.latest_frame
+        target_img = self._get_cropped_leaf_image()
         if target_img is None:
-            if self._has_camera():
-                self.disease_lbl.config(text="No leaf image captured! Please aim at leaf and tap CAPTURE.")
+            if self._is_live_mode():
+                self.disease_lbl.config(
+                    text=("पत्ती की फोटो नहीं ली गई! कृपया कैमरे के सामने पत्ती रखें और 'फोटो लें' दबाएं।" if is_hi else "No leaf image captured! Please aim at leaf and tap CAPTURE.")
+                )
             else:
-                self.disease_lbl.config(text="No image selected! Tap PICK FROM FILE to load a leaf image.")
+                self.disease_lbl.config(
+                    text=("कोई फोटो नहीं चुनी गई! पत्ती की फोटो लोड करने के लिए 'फाइल से चुनें' दबाएं।" if is_hi else "No image selected! Tap PICK FROM FILE to load a leaf image.")
+                )
             return
+
+        px0, py0, px1, py1 = self._get_crop_pixel_bounds()
+        pw, ph = max(1, px1 - px0), max(1, py1 - py0)
+        score, rating, q_msg, q_color = LeafQualityAI.assess(target_img, self.sharpness_min, lang=self.lang)
+        self.quality_lbl.config(
+            text=(f"चयनित भाग ({pw}×{ph} px) | {q_msg}" if is_hi else f"Diagnosed Crop ({pw}×{ph} px) | {q_msg}"),
+            fg=q_color
+        )
 
         if self.classifier:
             res = self.classifier.predict(target_img)
@@ -3138,10 +4890,40 @@ class AgriLensApp:
             self.last_probs = probs
             self.last_raw_out = raw_out
             self.latency_ms = ms
+            self.last_verdict = None
             self._render_diagnosis(probs, raw_out)
             self._update_stats_bar()
+            self._record_history(target_img, (px0, py0, px1, py1), score, rating, ms)
+
+    def _record_history(self, leaf_img, crop_px, quality_score, quality_rating, latency_ms):
+        """Stores the diagnosed leaf image and its record in the diagnosis history (never interrupts the kiosk)."""
+        hist = getattr(self, "history", None)
+        if hist is None or not hist.enabled or not getattr(self, "last_verdict", None):
+            return
+        try:
+            live = self._is_live_mode()
+            frame = self.captured_frame
+            clf = self.classifier
+            meta = dict(self.last_verdict)
+            meta.update({
+                "input_mode": "LIVE" if live else "FILE",
+                "source_file": "" if live else (getattr(self, "last_file_path", "") or getattr(self, "last_file_short_name", "")),
+                "camera": (self.camera.kind if (live and self.camera) else ""),
+                "frame_width": frame.size[0] if frame is not None else None, "frame_height": frame.size[1] if frame is not None else None,
+                "crop_box": "%d,%d,%d,%d" % tuple(crop_px),
+                "quality_score": quality_score, "quality_rating": quality_rating,
+                "gate_source": getattr(self, "gate_source", ""),
+                "app_version": APP_VERSION, "release": OTA_RELEASE_ID, "model_id": MODEL_ID, "model_version": MODEL_VERSION,
+                "model_sha256": getattr(clf, "model_sha256", "") or "", "engine": getattr(clf, "mode", ""),
+                "latency_ms": round(float(latency_ms or 0), 1), "language": getattr(self, "lang", "EN"),
+                "host": platform.node(),
+            })
+            hist.record(leaf_img, meta)
+        except Exception as e:
+            print(f"Notice: diagnosis history skipped ({e})")
 
     def _render_diagnosis(self, probs, raw_out=None):
+        is_hi = (getattr(self, "lang", "EN") == "HI")
         labels = self.classifier.labels
         n = len(labels)
         raw_probs = list(probs)
@@ -3186,47 +4968,87 @@ class AgriLensApp:
         # or top-1 vs top-2 margin is too narrow.
         is_low_confidence = (conf < self.threshold) or (active_margin < self.ood_margin)
 
+        crop_disp = translate_crop_hi(crop) if is_hi else crop
+        cond_disp = translate_cond_hi(cond) if is_hi else cond
+
         if is_unknown_plant:
-            status = "UNKNOWN PLANT / OUT OF SCOPE"
+            status = "अज्ञात पौधा / समर्थित सूची से बाहर" if is_hi else "UNKNOWN PLANT / OUT OF SCOPE"
             color = AMBER_WARN
-            plant_txt = "Plant: Unrecognized (Outside Catalog)"
-            disease_txt = "Specimen outside supported scope (Apple, Mango, Potato, Tomato)"
-            steps = OOD_STEPS
+            plant_txt = "पौधा: अपरिचित (समर्थित सूची से बाहर)" if is_hi else "Plant: Unrecognized (Outside Catalog)"
+            disease_txt = (
+                "नमूना समर्थित फसलों से बाहर है (सेब, आम, आलू, टमाटर)"
+                if is_hi else
+                "Specimen outside supported scope (Apple, Mango, Potato, Tomato)"
+            )
+            steps = OOD_STEPS_HI if is_hi else OOD_STEPS
             num_color = AMBER_WARN
-            btn_txt = "UNKNOWN LEAF"
+            btn_txt = "अज्ञात पत्ती" if is_hi else "UNKNOWN LEAF"
             btn_color = AMBER_WARN
         elif is_low_confidence:
-            status = "LOW CONFIDENCE — PLEASE RETAKE"
+            status = "कम स्पष्टता (LOW CONFIDENCE) — पुनः फोटो लें" if is_hi else "LOW CONFIDENCE — PLEASE RETAKE"
             color = AMBER_WARN
             if self.selected_plant:
-                plant_txt = f"Selected: {self.selected_plant.upper()}"
+                p_sel = translate_crop_hi(self.selected_plant) if is_hi else self.selected_plant.upper()
+                plant_txt = f"चयनित फसल: {p_sel}" if is_hi else f"Selected: {p_sel}"
             else:
-                plant_txt = "Mode: Auto-Detect (Beta Production)"
-            disease_txt = "Low Confidence — Cannot Safely Identify"
-            steps = UNSURE_STEPS
+                plant_txt = "मोड: ऑटो-डिटेक्ट (बीटा)" if is_hi else "Mode: Auto-Detect (Beta Production)"
+            disease_txt = "कम विश्वास स्तर — सुरक्षित पहचान संभव नहीं" if is_hi else "Low Confidence — Cannot Safely Identify"
+            steps = UNSURE_STEPS_HI if is_hi else UNSURE_STEPS
             num_color = AMBER_WARN
-            btn_txt = "LOW CONFIDENCE"
+            btn_txt = "कम स्पष्टता" if is_hi else "LOW CONFIDENCE"
             btn_color = AMBER_WARN
         elif healthy:
-            status = "HEALTHY LEAF — NO DISEASE"
+            status = "स्वस्थ पत्ती — कोई रोग नहीं" if is_hi else "HEALTHY LEAF — NO DISEASE"
             color = GREEN_PRIMARY
-            auto_suffix = " (Auto-Detected)" if self.selected_plant is None else ""
-            plant_txt = f"Plant: {crop}{auto_suffix}" if crop else ("Auto-Detect (Beta Production)" if self.selected_plant is None else "")
-            disease_txt = "No Disease Detected (Healthy Foliage)"
-            steps = get_recommendation(crop, cond)
+            if is_hi:
+                auto_suffix = " (स्वतः पहचाना गया)" if self.selected_plant is None else ""
+                plant_txt = f"फसल: {crop_disp}{auto_suffix}" if crop else ("ऑटो-डिटेक्ट (बीटा)" if self.selected_plant is None else "")
+                disease_txt = "कोई रोग नहीं मिला (स्वस्थ पत्ती)"
+                btn_txt = "स्वस्थ फसल"
+            else:
+                auto_suffix = " (Auto-Detected)" if self.selected_plant is None else ""
+                plant_txt = f"Plant: {crop}{auto_suffix}" if crop else ("Auto-Detect (Beta Production)" if self.selected_plant is None else "")
+                disease_txt = "No Disease Detected (Healthy Foliage)"
+                btn_txt = "HEALTHY CROP"
+            steps = get_recommendation(crop, cond, lang=self.lang)
             num_color = GREEN_PRIMARY
-            btn_txt = "HEALTHY CROP"
             btn_color = GREEN_PRIMARY
         else:
-            status = f"{cond.upper()} DETECTED"
+            status = f"{cond_disp} रोग मिला" if is_hi else f"{cond.upper()} DETECTED"
             color = RED_ALERT
-            auto_suffix = " (Auto-Detected)" if self.selected_plant is None else ""
-            plant_txt = f"Plant: {crop}{auto_suffix}" if crop else ("Auto-Detect (Beta Production)" if self.selected_plant is None else "")
-            disease_txt = cond
-            steps = get_recommendation(crop, cond)
+            if is_hi:
+                auto_suffix = " (स्वतः पहचाना गया)" if self.selected_plant is None else ""
+                plant_txt = f"फसल: {crop_disp}{auto_suffix}" if crop else ("ऑटो-डिटेक्ट (बीटा)" if self.selected_plant is None else "")
+                disease_txt = cond_disp
+                btn_txt = "रोग मिला"
+            else:
+                auto_suffix = " (Auto-Detected)" if self.selected_plant is None else ""
+                plant_txt = f"Plant: {crop}{auto_suffix}" if crop else ("Auto-Detect (Beta Production)" if self.selected_plant is None else "")
+                disease_txt = cond
+                btn_txt = "DISEASE FOUND"
+            steps = get_recommendation(crop, cond, lang=self.lang)
             num_color = RED_ALERT
-            btn_txt = "DISEASE FOUND"
             btn_color = RED_ALERT
+
+        # Language-independent summary of this verdict (read by the diagnosis history; the screen text above may be Hindi)
+        order = sorted(range(n), key=lambda i: raw_probs[i], reverse=True)
+        if is_unknown_plant:
+            v_code, v_status = "UNKNOWN", "UNKNOWN PLANT / OUT OF SCOPE"
+        elif is_low_confidence:
+            v_code, v_status = "LOW_CONFIDENCE", "LOW CONFIDENCE - PLEASE RETAKE"
+        elif healthy:
+            v_code, v_status = "HEALTHY", "HEALTHY LEAF - NO DISEASE"
+        else:
+            v_code, v_status = "DISEASE", f"{cond.upper()} DETECTED"
+        self.last_verdict = {
+            "verdict": v_code, "status": v_status, "result": labels[best], "crop": crop, "condition": cond,
+            "confidence_pct": round(conf * 100, 2), "top1_raw_pct": round(raw_top1 * 100, 2), "margin_pct": round(active_margin * 100, 2),
+            "max_logit": round(max_logit, 4) if raw_out is not None else None,
+            "second_label": labels[order[1]] if n > 1 else "", "second_pct": round(raw_probs[order[1]] * 100, 2) if n > 1 else None,
+            "top3": [{"label": labels[i], "pct": round(raw_probs[i] * 100, 2)} for i in order[:3]],
+            "gate_confidence": self.threshold, "gate_margin": self.ood_margin, "gate_ood_logit": self.ood_logit,
+            "selected_crop": self.selected_plant or "AUTO",
+        }
 
         # Update Banner & Texts
         self.banner_frame.config(bg=color)
@@ -3238,26 +5060,33 @@ class AgriLensApp:
 
         # Update Confidence Bar (if unknown plant, display the rejection message)
         if is_unknown_plant:
-            self._draw_bar(raw_top1, color, f"Uncertain Match: {raw_top1 * 100:.1f}% (Rejected as Unknown)")
+            rej_txt = (
+                f"अनिश्चित मिलान: {raw_top1 * 100:.1f}% (अज्ञात के रूप में अस्वीकृत)"
+                if is_hi else
+                f"Uncertain Match: {raw_top1 * 100:.1f}% (Rejected as Unknown)"
+            )
+            self._draw_bar(raw_top1, color, rej_txt)
         else:
             self._draw_bar(conf, color)
 
-        # Update Steps
+        # UpdateSteps
         for row, _, _ in self.step_rows:
             row.pack_forget()
         for (row, num, txt), step in zip(self.step_rows, steps):
             num.config(bg=num_color)
             txt.config(text=step)
-            row.pack(fill="x", pady=(0, self.px(5)))
+            row.pack(fill="x", pady=(0, self.px(4)))
 
     def _draw_bar(self, frac, color, text=None):
         self.bar.delete("all")
         if frac > 0:
             self.bar.create_rectangle(0, 0, int(self.BAR_W * frac), self.BAR_H, fill=color, width=0)
-        lbl_text = f"Confidence: {frac * 100:.1f}%" if text is None else text
+        is_hi = (getattr(self, "lang", "EN") == "HI")
+        default_lbl = f"विश्वास स्तर (Confidence): {frac * 100:.1f}%" if is_hi else f"Confidence: {frac * 100:.1f}%"
+        lbl_text = default_lbl if text is None else text
         self.bar.create_text(
             self.BAR_W // 2, self.BAR_H // 2, fill=TEXT,
-            font=self.f(9, True), text=lbl_text
+            font=self.f(10, True), text=lbl_text
         )
 
     def _update_stats_bar(self):
@@ -3265,12 +5094,25 @@ class AgriLensApp:
         if self.classifier and self.classifier.error_reason:
             mode_text = f"DEMO ({self.classifier.error_reason})"
         lat = f"{self.latency_ms:.0f} ms" if self.latency_ms > 0 else "-- ms"
-        cam = self.camera.kind if self.camera else "none"
+        if self.standby_active:
+            cam = "OFF (Standby)"
+            in_mode = "STANDBY"
+        elif self.startup_splash_active:
+            cam = self.camera.kind if self.camera else "starting"
+            in_mode = "SPLASH (5s)"
+        else:
+            cam = self.camera.kind if self.camera else "none"
+            in_mode = "LIVE" if self._is_live_mode() else "FILE"
         py_ver = f"Py {platform.python_version()}"
-        self.stats_lbl.config(text=f"v{APP_VERSION} | AI: {mode_text} | Latency: {lat} | Camera: {cam} | {py_ver}")
+        self.stats_lbl.config(text=f"AGRILENS v{APP_VERSION} | Input: {in_mode} | AI: {mode_text} | Latency: {lat} | Camera: {cam} | {py_ver}")
 
     def close(self):
         self.running = False
+        try:
+            if getattr(self, "history_sync", None):
+                self.history_sync.stop()
+        except Exception:
+            pass
         try:
             self._sync_sliders_to_attributes()
             self._save_current_settings()
@@ -3291,7 +5133,23 @@ class AgriLensApp:
 # =============================================================================
 # 8. MAIN ENTRY POINT
 # =============================================================================
+def _kill_previous_instances():
+    """Terminates any older running AGRILENS main.py process so the new version replaces it cleanly."""
+    if platform.system() != "Linux":
+        return
+    try:
+        my_pid = os.getpid()
+        res = subprocess.run(["pgrep", "-f", "main.py"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+        for line in res.stdout.splitlines():
+            line = line.strip()
+            if line.isdigit() and int(line) != my_pid:
+                subprocess.run(["kill", "-9", line], stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+
+
 if __name__ == "__main__":
+    _kill_previous_instances()
     root = tk.Tk()
     app = AgriLensApp(root)
     root.mainloop()

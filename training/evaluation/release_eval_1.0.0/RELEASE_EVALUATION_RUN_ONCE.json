@@ -1,0 +1,14 @@
+{
+ "run_utc": "2026-11-17T12:41:51+00:00",
+ "hashes": {
+  "app_main": "8f6c0378f0d12e57b5d35a0804392011f3a594c63ed19d0c0c001988c1b8ffc8",
+  "release_model": "776d08ac669d0ea8874a458bfb6ea2657c5d40525d30021c7c8c1204d520332b",
+  "production_model": "0b5bb7fb3916a7c1138f90cfc9abfdc130f06495a34282d474e52718b072ff80",
+  "calibration": "d8df659c6d7d639f1db2c2336b781fb5513376211208ea3faa0da8bfb52b8fe5",
+  "criteria": "fbdee6d7c3db4f44f8502e8f0fd6b9aeccea8fa94b696e5f35f54ad38310b0c5",
+  "this_script": "fc8db344eb02098aaf3a8654650670fd801eae646e09da3380982d0eee08f887",
+  "kiosk_path": "723c72a06b5028e686518db756617a53cc127b9084233161cd25e1b2ba416154",
+  "dataset_freeze": "12449a5caf1bfc736a9be1a83fa71f603b29045b48eaa7db82b0bffd2e5f8c0a",
+  "ood_v2_eval_fingerprint": "8d213402346bb87e822bc258f9a867a6f5e86fdbf8ae1f2da556116caa0bb0b9"
+ }
+}

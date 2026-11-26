@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "AGRILENS C: quality gate before commit, approval before push",
+      "trigger": "PreToolUse",
+      "description": "Before a shell command runs: a git commit is blocked if the AGRILENS quality gate fails on the staged change; git push, gh release create and the OTA publisher require explicit user approval.",
+      "matcher": "^(execute_pwsh|control_pwsh_process)$",
+      "action": {
+        "type": "command",
+        "command": "python -c \"import os,subprocess,sys;r=subprocess.run(['git','rev-parse','--show-toplevel'],capture_output=True,text=True).stdout.strip();t=os.path.join(r,'tools','governance','agl_governance.py');sys.exit(0 if not os.path.exists(t) else (2 if subprocess.run([sys.executable,t,'hook-pretool'],stdin=sys.stdin,cwd=r).returncode==3 else 0))\"",
+        "timeout": 900
+      }
+    }
+  ]
+}

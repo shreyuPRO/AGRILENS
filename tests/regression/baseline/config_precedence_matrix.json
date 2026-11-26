@@ -1,0 +1,379 @@
+{
+  "note": "Effective config from the application's own load_kiosk_config(). Later source wins: code defaults < app-dir kiosk_config.json < ~/.agrilens_kiosk_config.json.",
+  "cases": [
+    {
+      "name": "no_files",
+      "app_dir_file": null,
+      "user_file": null,
+      "effective": {
+        "confidence_threshold": 0.4,
+        "ood_margin": 0.12,
+        "ood_logit": 1.4,
+        "sharpness_min": 25.0,
+        "cam_contrast": 100,
+        "cam_brightness": 0,
+        "cam_saturation": 100,
+        "cam_sharpness": 100,
+        "cam_wb_temp": 0,
+        "cam_zoom": 100,
+        "cam_flip_h": false,
+        "cam_flip_v": false,
+        "cam_auto_exp": true,
+        "cam_auto_wb": true,
+        "language": "EN"
+      }
+    },
+    {
+      "name": "app_dir_only_device_calibration",
+      "app_dir_file": {
+        "confidence_threshold": 0.4,
+        "ood_margin": 0.12,
+        "ood_logit": 6.0,
+        "sharpness_min": 25.0,
+        "cam_contrast": 100,
+        "cam_brightness": 0,
+        "cam_saturation": 100,
+        "cam_sharpness": 100,
+        "cam_wb_temp": 0,
+        "cam_zoom": 100,
+        "cam_flip_h": false,
+        "cam_flip_v": false,
+        "cam_auto_exp": false,
+        "cam_auto_wb": false,
+        "language": "EN"
+      },
+      "user_file": null,
+      "effective": {
+        "confidence_threshold": 0.4,
+        "ood_margin": 0.12,
+        "ood_logit": 6.0,
+        "sharpness_min": 25.0,
+        "cam_contrast": 100,
+        "cam_brightness": 0,
+        "cam_saturation": 100,
+        "cam_sharpness": 100,
+        "cam_wb_temp": 0,
+        "cam_zoom": 100,
+        "cam_flip_h": false,
+        "cam_flip_v": false,
+        "cam_auto_exp": false,
+        "cam_auto_wb": false,
+        "language": "EN"
+      }
+    },
+    {
+      "name": "user_overrides_app_dir_1.4",
+      "app_dir_file": {
+        "confidence_threshold": 0.4,
+        "ood_margin": 0.12,
+        "ood_logit": 6.0,
+        "sharpness_min": 25.0,
+        "cam_contrast": 100,
+        "cam_brightness": 0,
+        "cam_saturation": 100,
+        "cam_sharpness": 100,
+        "cam_wb_temp": 0,
+        "cam_zoom": 100,
+        "cam_flip_h": false,
+        "cam_flip_v": false,
+        "cam_auto_exp": false,
+        "cam_auto_wb": false,
+        "language": "EN"
+      },
+      "user_file": {
+        "ood_logit": 1.4
+      },
+      "effective": {
+        "confidence_threshold": 0.4,
+        "ood_margin": 0.12,
+        "ood_logit": 1.4,
+        "sharpness_min": 25.0,
+        "cam_contrast": 100,
+        "cam_brightness": 0,
+        "cam_saturation": 100,
+        "cam_sharpness": 100,
+        "cam_wb_temp": 0,
+        "cam_zoom": 100,
+        "cam_flip_h": false,
+        "cam_flip_v": false,
+        "cam_auto_exp": false,
+        "cam_auto_wb": false,
+        "language": "EN"
+      }
+    },
+    {
+      "name": "user_overrides_app_dir_6.0",
+      "app_dir_file": {
+        "ood_logit": 1.4
+      },
+      "user_file": {
+        "confidence_threshold": 0.4,
+        "ood_margin": 0.12,
+        "ood_logit": 6.0,
+        "sharpness_min": 25.0,
+        "cam_contrast": 100,
+        "cam_brightness": 0,
+        "cam_saturation": 100,
+        "cam_sharpness": 100,
+        "cam_wb_temp": 0,
+        "cam_zoom": 100,
+        "cam_flip_h": false,
+        "cam_flip_v": false,
+        "cam_auto_exp": false,
+        "cam_auto_wb": false,
+        "language": "EN"
+      },
+      "effective": {
+        "confidence_threshold": 0.4,
+        "ood_margin": 0.12,
+        "ood_logit": 6.0,
+        "sharpness_min": 25.0,
+        "cam_contrast": 100,
+        "cam_brightness": 0,
+        "cam_saturation": 100,
+        "cam_sharpness": 100,
+        "cam_wb_temp": 0,
+        "cam_zoom": 100,
+        "cam_flip_h": false,
+        "cam_flip_v": false,
+        "cam_auto_exp": false,
+        "cam_auto_wb": false,
+        "language": "EN"
+      }
+    },
+    {
+      "name": "user_file_without_key_keeps_app_dir",
+      "app_dir_file": {
+        "confidence_threshold": 0.4,
+        "ood_margin": 0.12,
+        "ood_logit": 6.0,
+        "sharpness_min": 25.0,
+        "cam_contrast": 100,
+        "cam_brightness": 0,
+        "cam_saturation": 100,
+        "cam_sharpness": 100,
+        "cam_wb_temp": 0,
+        "cam_zoom": 100,
+        "cam_flip_h": false,
+        "cam_flip_v": false,
+        "cam_auto_exp": false,
+        "cam_auto_wb": false,
+        "language": "EN"
+      },
+      "user_file": {
+        "language": "HI"
+      },
+      "effective": {
+        "confidence_threshold": 0.4,
+        "ood_margin": 0.12,
+        "ood_logit": 6.0,
+        "sharpness_min": 25.0,
+        "cam_contrast": 100,
+        "cam_brightness": 0,
+        "cam_saturation": 100,
+        "cam_sharpness": 100,
+        "cam_wb_temp": 0,
+        "cam_zoom": 100,
+        "cam_flip_h": false,
+        "cam_flip_v": false,
+        "cam_auto_exp": false,
+        "cam_auto_wb": false,
+        "language": "HI"
+      }
+    },
+    {
+      "name": "reset_trap_ood6.0_conf0.50",
+      "app_dir_file": {
+        "confidence_threshold": 0.5,
+        "ood_margin": 0.12,
+        "ood_logit": 6.0,
+        "sharpness_min": 25.0,
+        "cam_contrast": 100,
+        "cam_brightness": 0,
+        "cam_saturation": 100,
+        "cam_sharpness": 100,
+        "cam_wb_temp": 0,
+        "cam_zoom": 100,
+        "cam_flip_h": false,
+        "cam_flip_v": false,
+        "cam_auto_exp": false,
+        "cam_auto_wb": false,
+        "language": "EN"
+      },
+      "user_file": null,
+      "effective": {
+        "confidence_threshold": 0.4,
+        "ood_margin": 0.12,
+        "ood_logit": 1.4,
+        "sharpness_min": 25.0,
+        "cam_contrast": 100,
+        "cam_brightness": 0,
+        "cam_saturation": 100,
+        "cam_sharpness": 100,
+        "cam_wb_temp": 0,
+        "cam_zoom": 100,
+        "cam_flip_h": false,
+        "cam_flip_v": false,
+        "cam_auto_exp": false,
+        "cam_auto_wb": false,
+        "language": "EN"
+      }
+    },
+    {
+      "name": "reset_boundary_ood1.80_conf0.48",
+      "app_dir_file": {
+        "ood_logit": 1.8,
+        "confidence_threshold": 0.48
+      },
+      "user_file": null,
+      "effective": {
+        "confidence_threshold": 0.4,
+        "ood_margin": 0.12,
+        "ood_logit": 1.4,
+        "sharpness_min": 25.0,
+        "cam_contrast": 100,
+        "cam_brightness": 0,
+        "cam_saturation": 100,
+        "cam_sharpness": 100,
+        "cam_wb_temp": 0,
+        "cam_zoom": 100,
+        "cam_flip_h": false,
+        "cam_flip_v": false,
+        "cam_auto_exp": true,
+        "cam_auto_wb": true,
+        "language": "EN"
+      }
+    },
+    {
+      "name": "reset_just_below_ood1.79_conf0.48",
+      "app_dir_file": {
+        "ood_logit": 1.79,
+        "confidence_threshold": 0.48
+      },
+      "user_file": null,
+      "effective": {
+        "confidence_threshold": 0.48,
+        "ood_margin": 0.12,
+        "ood_logit": 1.79,
+        "sharpness_min": 25.0,
+        "cam_contrast": 100,
+        "cam_brightness": 0,
+        "cam_saturation": 100,
+        "cam_sharpness": 100,
+        "cam_wb_temp": 0,
+        "cam_zoom": 100,
+        "cam_flip_h": false,
+        "cam_flip_v": false,
+        "cam_auto_exp": true,
+        "cam_auto_wb": true,
+        "language": "EN"
+      }
+    },
+    {
+      "name": "reset_just_below_ood1.80_conf0.47",
+      "app_dir_file": {
+        "ood_logit": 1.8,
+        "confidence_threshold": 0.47
+      },
+      "user_file": null,
+      "effective": {
+        "confidence_threshold": 0.47,
+        "ood_margin": 0.12,
+        "ood_logit": 1.8,
+        "sharpness_min": 25.0,
+        "cam_contrast": 100,
+        "cam_brightness": 0,
+        "cam_saturation": 100,
+        "cam_sharpness": 100,
+        "cam_wb_temp": 0,
+        "cam_zoom": 100,
+        "cam_flip_h": false,
+        "cam_flip_v": false,
+        "cam_auto_exp": true,
+        "cam_auto_wb": true,
+        "language": "EN"
+      }
+    },
+    {
+      "name": "clamp_high",
+      "app_dir_file": {
+        "ood_logit": 7.5,
+        "confidence_threshold": 0.99,
+        "ood_margin": 0.9,
+        "sharpness_min": 500
+      },
+      "user_file": null,
+      "effective": {
+        "confidence_threshold": 0.4,
+        "ood_margin": 0.12,
+        "ood_logit": 1.4,
+        "sharpness_min": 25.0,
+        "cam_contrast": 100,
+        "cam_brightness": 0,
+        "cam_saturation": 100,
+        "cam_sharpness": 100,
+        "cam_wb_temp": 0,
+        "cam_zoom": 100,
+        "cam_flip_h": false,
+        "cam_flip_v": false,
+        "cam_auto_exp": true,
+        "cam_auto_wb": true,
+        "language": "EN"
+      }
+    },
+    {
+      "name": "clamp_low",
+      "app_dir_file": {
+        "ood_logit": 0.1,
+        "confidence_threshold": 0.01,
+        "ood_margin": 0.0,
+        "sharpness_min": 1
+      },
+      "user_file": null,
+      "effective": {
+        "confidence_threshold": 0.3,
+        "ood_margin": 0.1,
+        "ood_logit": 1.0,
+        "sharpness_min": 20.0,
+        "cam_contrast": 100,
+        "cam_brightness": 0,
+        "cam_saturation": 100,
+        "cam_sharpness": 100,
+        "cam_wb_temp": 0,
+        "cam_zoom": 100,
+        "cam_flip_h": false,
+        "cam_flip_v": false,
+        "cam_auto_exp": true,
+        "cam_auto_wb": true,
+        "language": "EN"
+      }
+    },
+    {
+      "name": "bad_types_fall_back",
+      "app_dir_file": {
+        "ood_logit": "abc",
+        "cam_zoom": null,
+        "cam_flip_h": "yes",
+        "language": "fr"
+      },
+      "user_file": null,
+      "effective": {
+        "confidence_threshold": 0.4,
+        "ood_margin": 0.12,
+        "ood_logit": 1.4,
+        "sharpness_min": 25.0,
+        "cam_contrast": 100,
+        "cam_brightness": 0,
+        "cam_saturation": 100,
+        "cam_sharpness": 100,
+        "cam_wb_temp": 0,
+        "cam_zoom": 100,
+        "cam_flip_h": false,
+        "cam_flip_v": false,
+        "cam_auto_exp": true,
+        "cam_auto_wb": true,
+        "language": "EN"
+      }
+    }
+  ]
+}

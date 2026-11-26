@@ -1,0 +1,13 @@
+colorama==0.4.6
+flatbuffers==25.12.19
+iniconfig==2.3.1
+numpy==2.5.5
+onnxruntime==1.32.0
+opencv_python==5.1.0.95
+packaging==26.3
+pillow==13.0.0
+pluggy==1.7.0
+protobuf==7.36.2
+pygments==2.21.0
+pytest==9.2.0
+ruff==0.17.5

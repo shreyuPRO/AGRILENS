@@ -1,0 +1,161 @@
+{
+ "model_id": "AGRILENS-MULTICROP",
+ "model_version": "1.1.0",
+ "status": "CANDIDATE 1.1.0 (not deployed; selected run multicrop11_R2w_s42)",
+ "file": "agrilens.onnx",
+ "sha256": "0774ca4aadab930086ade370234919a69cf35c8a22844355f78a20a194e0f08e",
+ "bytes": 10067999,
+ "labels_file": "labels.txt",
+ "labels_sha256": "5087b575db52af07cf8efe82b033ea2715b7dd6b20106f3554ae7945e7aed393",
+ "classes": [
+  "Apple_Rust",
+  "Apple_Scab",
+  "Apple_healthy",
+  "Mango_Anthracnose",
+  "Mango_Bacterial_Canker",
+  "Mango_Cutting_Weevil",
+  "Mango_Die_Back",
+  "Mango_Gall_Midge",
+  "Mango_Healthy",
+  "Mango_Powdery_Mildew",
+  "Mango_Sooty_Mould",
+  "Potato_Early_blight",
+  "Potato_Late_blight",
+  "Potato_healthy",
+  "Tomato_Bacterial_spot",
+  "Tomato_Early_blight",
+  "Tomato_Late_blight",
+  "Tomato_Leaf_Mold",
+  "Tomato_Septoria_leaf_spot",
+  "Tomato_Spider_mites_Two_spotted_spider_mite",
+  "Tomato_Target_Spot",
+  "Tomato_Tomato_YellowLeaf_Curl_Virus",
+  "Tomato_Tomato_mosaic_virus",
+  "Tomato_healthy"
+ ],
+ "class_order": "identical to the production 4.9.4 labels.txt",
+ "architecture": {
+  "timm": "mobilenetv4_conv_small.e2400_r224_in1k",
+  "init": "ImageNet-1k",
+  "recipe": "R2_last_two_stages",
+  "trainable": [
+   "blocks.3",
+   "blocks.4",
+   "conv_head",
+   "norm_head",
+   "classifier"
+  ]
+ },
+ "input": {
+  "name": "input",
+  "shape": "N x 3 x 224 x 224",
+  "preprocessing": "the application's Classifier (six views: full resize, square fit, 256/224 crop, each natural and screen-restored; logit ensemble); ImageNet mean/std"
+ },
+ "output": {
+  "name": "logits",
+  "num_classes": 24
+ },
+ "training": {
+  "dataset": "AGL-MULTICROP-MD 1.0.0",
+  "run_id": "multicrop11_R2w_s42",
+  "best_epoch": 12,
+  "config": {
+   "run_id": "multicrop11_R2w_s42",
+   "recipe": "R2_last_two_stages",
+   "seed": 42,
+   "model": "mobilenetv4_conv_small.e2400_r224_in1k (ImageNet-1k, timm)",
+   "num_classes": 24,
+   "candidate": "AGRILENS-MULTICROP 1.1.0",
+   "dataset": {
+    "id": "AGL-MULTICROP-MD",
+    "version": "1.0.0",
+    "root": "datasets/AGL-MULTICROP-MD/AGL-MULTICROP-MD-1.0.0"
+   },
+   "cache": "training_cache/AGL-MULTICROP-MD-1.0.0",
+   "output_dir": "training_runs/agrilens-multicrop-1.1.0",
+   "data": {
+    "train": "splits/train.csv",
+    "validation": "splits/val.csv (selection and early stopping only)",
+    "never_read": [
+     "splits/test_known_device.csv",
+     "splits/test_heldout_device.csv"
+    ]
+   },
+   "sampling": {
+    "rule": "class uniform -> leaf group uniform -> image uniform",
+    "samples_per_epoch": 12000
+   },
+   "augmentation": {
+    "rotation_degrees": 30,
+    "crop_scale": [
+     0.5,
+     1.0
+    ],
+    "colour_jitter": {
+     "brightness": 0.25,
+     "contrast": 0.25,
+     "saturation": 0.25,
+     "hue": 0.02
+    },
+    "blur_p": 0.2,
+    "jpeg_p": 0.5,
+    "jpeg_quality": [
+     35,
+     95
+    ],
+    "webcam": {
+     "p": 0.7,
+     "white_balance": 0.15,
+     "exposure": [
+      0.75,
+      1.45
+     ],
+     "gamma": [
+      0.75,
+      1.3
+     ],
+     "washout": 0.25,
+     "noise_sigma": [
+      1.0,
+      8.0
+     ],
+     "downscale_p": 0.6,
+     "downscale": [
+      0.35,
+      0.85
+     ],
+     "motion_blur_p": 0.15
+    }
+   },
+   "optim": {
+    "optimiser": "AdamW",
+    "lr_head": 0.001,
+    "lr_backbone": 0.0003,
+    "weight_decay": 0.01,
+    "label_smoothing": 0.06,
+    "batch_size": 32,
+    "epochs_max": 15,
+    "patience": 3,
+    "schedule": "1-epoch warm-up, cosine"
+   },
+   "compute": {
+    "torch_threads": 10,
+    "workers": 8
+   }
+  }
+ },
+ "checkpoint_sha256": "9439d6b1e240846cf765153e0ee90662d7b12dd4d5a943636ee6af199567e849",
+ "onnx_opset": 17,
+ "parity_vs_pytorch_256_validation_images": {
+  "images": 256,
+  "max_abs_logit_diff": 9.313225746154785e-06,
+  "argmax_agreement": 1.0
+ },
+ "software": {
+  "torch": "2.11.0+cpu",
+  "timm": "1.0.31",
+  "onnx": "1.23.2",
+  "onnxruntime": "1.32.0"
+ },
+ "exported_utc": "2026-11-18T18:25:49Z"
+}

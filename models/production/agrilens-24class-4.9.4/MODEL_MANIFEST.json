@@ -1,0 +1,43 @@
+{
+ "model_id": "AGRILENS-24CLASS",
+ "model_version": "4.9.4-production",
+ "status": "PRODUCTION BASELINE (deployed with AGRILENS 4.9.4); preserved unchanged for rollback and comparison",
+ "file": "agrilens.onnx",
+ "sha256": "0b5bb7fb3916a7c1138f90cfc9abfdc130f06495a34282d474e52718b072ff80",
+ "bytes": 10068009,
+ "labels_file": "labels.txt",
+ "labels_sha256_content_lf": "5087b575db52af07cf8efe82b033ea2715b7dd6b20106f3554ae7945e7aed393",
+ "classes": [
+  "Apple_Rust",
+  "Apple_Scab",
+  "Apple_healthy",
+  "Mango_Anthracnose",
+  "Mango_Bacterial_Canker",
+  "Mango_Cutting_Weevil",
+  "Mango_Die_Back",
+  "Mango_Gall_Midge",
+  "Mango_Healthy",
+  "Mango_Powdery_Mildew",
+  "Mango_Sooty_Mould",
+  "Potato_Early_blight",
+  "Potato_Late_blight",
+  "Potato_healthy",
+  "Tomato_Bacterial_spot",
+  "Tomato_Early_blight",
+  "Tomato_Late_blight",
+  "Tomato_Leaf_Mold",
+  "Tomato_Septoria_leaf_spot",
+  "Tomato_Spider_mites_Two_spotted_spider_mite",
+  "Tomato_Target_Spot",
+  "Tomato_Tomato_YellowLeaf_Curl_Virus",
+  "Tomato_Tomato_mosaic_virus",
+  "Tomato_healthy"
+ ],
+ "architecture": "MobileNetV4-Conv-Small (timm), ONNX",
+ "training": "training/legacy_4.9.4 (stratified 80/20 per-image split, seed 42; ImageNet init; no checkpoint or log was found)",
+ "known_properties": [
+  "very likely trained on the MangoLeafBD and PlantVillage images in AGL-MULTICROP-MD (scores ~100% on MangoLeafBD), so its scores on those images are not independent",
+  "rejection gates calibrated on device to ood_logit 6.0 (working-tree kiosk_config.json, uncommitted); code default 1.40",
+  "no group-aware split; no held-out-device evaluation"
+ ]
+}

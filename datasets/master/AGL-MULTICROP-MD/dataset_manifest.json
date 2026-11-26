@@ -1,0 +1,112 @@
+{
+ "dataset_id": "AGL-MULTICROP-MD",
+ "version": "1.0.0",
+ "status": "FROZEN",
+ "created_utc": "2026-11-17T11:07:13+00:00",
+ "statistics": {
+  "dataset_id": "AGL-MULTICROP-MD",
+  "version": "1.0.0",
+  "records": 44612,
+  "by_status": {
+   "accepted": 26917,
+   "excluded_augmented": 12729,
+   "quarantined": 2205,
+   "rejected": 1919,
+   "supplementary": 430,
+   "accepted_excluded_from_splits": 412
+  },
+  "by_crop_status": {
+   "Apple|accepted": 1730,
+   "Mango|accepted": 7038,
+   "Mango|accepted_excluded_from_splits": 412,
+   "Mango|excluded_augmented": 12729,
+   "Mango|quarantined": 2205,
+   "Mango|rejected": 1905,
+   "Mango|supplementary": 430,
+   "Potato|accepted": 2152,
+   "Tomato|accepted": 15997,
+   "Tomato|rejected": 14
+  },
+  "accepted_by_class": {
+   "APL001": 622,
+   "APL002": 592,
+   "APL003": 516,
+   "MNG001": 1357,
+   "MNG002": 884,
+   "MNG003": 500,
+   "MNG004": 448,
+   "MNG005": 500,
+   "MNG006": 1597,
+   "MNG007": 1252,
+   "MNG008": 500,
+   "POT001": 1000,
+   "POT002": 1000,
+   "POT003": 152,
+   "TOM001": 2127,
+   "TOM002": 1000,
+   "TOM003": 1901,
+   "TOM004": 952,
+   "TOM005": 1771,
+   "TOM006": 1676,
+   "TOM007": 1404,
+   "TOM008": 3208,
+   "TOM009": 373,
+   "TOM010": 1585
+  },
+  "by_split": {
+   "train": 19153,
+   "val": 3844,
+   "test_known_device": 3595,
+   "test_heldout_device": 325
+  },
+  "split_by_crop": {
+   "Apple|test_known_device": 259,
+   "Apple|train": 1211,
+   "Apple|val": 260,
+   "Mango|test_heldout_device": 325,
+   "Mango|test_known_device": 617,
+   "Mango|train": 5244,
+   "Mango|val": 852,
+   "Potato|test_known_device": 320,
+   "Potato|train": 1504,
+   "Potato|val": 328,
+   "Tomato|test_known_device": 2399,
+   "Tomato|train": 11194,
+   "Tomato|val": 2404
+  },
+  "original_vs_augmented": {
+   "original_photo": 26751,
+   "augmented": 12729,
+   "derivative": 1811,
+   "likely_original": 1718,
+   "likely_derivative": 1061,
+   "background_removed_original": 542
+  },
+  "accepted_by_source": {
+   "PLANTVILLAGE": 18149,
+   "MANGOLEAFBD": 3902,
+   "SAR25": 2424,
+   "PP2020": 1730,
+   "ABCGMP": 712
+  },
+  "leakage_checks": {
+   "leaf_group_id": 0,
+   "copy_group_id": 0,
+   "split_unit": 0
+  },
+  "plantvillage_leaf_map_matches": {
+   "Potato": 2152,
+   "Tomato": 10310
+  },
+  "accepted_leaf_groups_by_crop": {
+   "Apple": 1712,
+   "Mango": 4618,
+   "Potato": 535,
+   "Tomato": 8410
+  }
+ },
+ "taxonomy_classes_in_model": 24,
+ "image_manifest_sha256": "44524dfb19c4af2cb2056e0608315caf05c304fab5130f3aa6ea7d2763d5a916",
+ "split_assignment_sha256": "10ebdacc51aff6823987180b77be0ca6aa700da9c106251b2c74b4634808e614",
+ "builder": "AGRILENS repository datasets/dataset_tools/build_agl_multicrop_md.py"
+}

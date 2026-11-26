@@ -1,0 +1,29 @@
+# Tooling configuration only. AGRILENS is not packaged with this file.
+# (pytest.ini would be ignored by git because .gitignore excludes *.ini.)
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider -q"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 160
+# Excluded: the generated device folder, byte-preserved 4.9.4 copies, archives, and application/main.py (kept in the 4.9.4 style so
+# its diff against 4.9.4 stays reviewable).
+extend-exclude = ["AGRILENS_RaspberryPi", "application/main.py", "archive", ".venv", "deployment/rollback", "tests/regression/baseline/legacy_4.9.4"]
+
+[tool.ruff.lint]
+# Correctness-focused rules only (pyflakes, pycodestyle errors/warnings, bugbear). Style rules are not enforced.
+select = ["E", "F", "W", "B"]
+ignore = ["B011", "B905", "B007", "E731", "E501"]
+[tool.ruff.lint.per-file-ignores]
+# Research and dataset-build scripts are kept byte-identical to the versions that produced the frozen datasets, runs and reports
+# (provenance). Only compact-style and unused-import findings are waived there; undefined names and bugbear findings still fail.
+"training/**" = ["E701", "E702", "E703", "E741", "E401", "E402", "E231", "F401", "F403", "F405", "W291", "W293"]
+"datasets/**" = ["E701", "E702", "E703", "E741", "E401", "E402", "E231", "F401", "F403", "F405", "W291", "W293", "F841"]
+# B023: the lambda is evaluated immediately inside the same loop iteration (Series.map), so the late-binding case cannot occur.
+# 5.0.0 release tooling is written in the compact style of the research scripts; only style codes are waived.
+"deployment/packaging/**" = ["E701", "E702", "E401", "E741"]
+"tools/migration/**" = ["E701", "E702", "E401", "E741"]
+"tests/integration/test_ota_publication.py" = ["E741"]
+# F811: the shared pytest fixture `serve` is imported from test_ota_publication and used as a test argument (standard fixture-import pattern).
+"tests/integration/test_inapp_ota.py" = ["F811"]

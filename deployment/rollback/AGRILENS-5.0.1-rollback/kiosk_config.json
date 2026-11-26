@@ -1,0 +1,16 @@
+{
+  "confidence_threshold": 0.4,
+  "ood_margin": 0.12,
+  "ood_logit": 1.4,
+  "sharpness_min": 25.0,
+  "cam_contrast": 100,
+  "cam_brightness": 0,
+  "cam_saturation": 100,
+  "cam_sharpness": 100,
+  "cam_wb_temp": 0,
+  "cam_zoom": 100,
+  "cam_flip_h": false,
+  "cam_flip_v": false,
+  "cam_auto_exp": true,
+  "cam_auto_wb": true
+}

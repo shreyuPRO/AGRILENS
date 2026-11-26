@@ -1,0 +1,26 @@
+class_id,model_index,model_label,crop,display_name,source_datasets,accepted_images,accepted_leaf_groups,quarantined,in_splits,label_confidence,training_eligible,provisional,known_limitations
+APL001,0,Apple_Rust,Apple,Apple Rust,PP2020,622,616,0,622,"source label, unverified by an expert",True,False,"single source, one capture campaign; no device information"
+APL002,1,Apple_Scab,Apple,Apple Scab,PP2020,592,592,0,592,"source label, unverified by an expert",True,False,"single source, one capture campaign; no device information"
+APL003,2,Apple_healthy,Apple,Apple Healthy,PP2020,516,504,0,516,"source label, unverified by an expert",True,False,"single source, one capture campaign; no device information"
+MNG001,3,Mango_Anthracnose,Mango,Mango Anthracnose,MANGOLEAFBD;SAR25,1357,1223,102,1357,"source label, unverified by an expert",True,False,held-out-device test available (SAR)
+MNG002,4,Mango_Bacterial_Canker,Mango,Mango Bacterial Canker,ABCGMP;MANGOLEAFBD,884,580,41,884,source label; ABCGMP overlaps MangoLeafBD (effectively one session),True,False,no device-independent test
+MNG003,5,Mango_Cutting_Weevil,Mango,Mango Cutting Weevil,MANGOLEAFBD,500,202,18,500,"source label, single source and essentially one phone",True,False,no device-independent or source-independent test
+MNG004,6,Mango_Die_Back,Mango,Mango Die Back,MANGOLEAFBD,448,321,45,448,"source label, single source, leaf-only diagnosis doubtful",True,False,no device-independent or source-independent test
+MNG005,7,Mango_Gall_Midge,Mango,Mango Gall Midge,MANGOLEAFBD,500,393,984,500,medium: MangoLeafBD labels only; SAR 'Golmichi' mapping provisional and quarantined,True,True,"provisional until expert review; held-out-device evidence only from SAR images, which are quarantined in this release"
+MNG006,8,Mango_Healthy,Mango,Mango Healthy,ABCGMP;MANGOLEAFBD;SAR25,1597,906,1,1597,"source label, unverified by an expert",True,False,no device-independent test
+MNG007,9,Mango_Powdery_Mildew,Mango,Mango Powdery Mildew,MANGOLEAFBD;SAR25,1252,617,11,1252,"source label, unverified by an expert",True,False,no device-independent test (4 held-out images)
+MNG008,10,Mango_Sooty_Mould,Mango,Mango Sooty Mould,MANGOLEAFBD,500,376,3,500,"source label, single source and one phone",True,False,no device-independent or source-independent test
+POT001,11,Potato_Early_blight,Potato,Potato Early Blight,PLANTVILLAGE,1000,248,0,1000,"source label, unverified by an expert",True,False,PlantVillage laboratory images; Potato healthy has 152 images from few leaves
+POT002,12,Potato_Late_blight,Potato,Potato Late Blight,PLANTVILLAGE,1000,249,0,1000,"source label, unverified by an expert",True,False,PlantVillage laboratory images; Potato healthy has 152 images from few leaves
+POT003,13,Potato_healthy,Potato,Potato Healthy,PLANTVILLAGE,152,38,0,152,"source label, unverified by an expert",True,False,PlantVillage laboratory images; Potato healthy has 152 images from few leaves
+TOM001,14,Tomato_Bacterial_spot,Tomato,Tomato Bacterial Spot,PLANTVILLAGE,2127,505,0,2127,"source label, unverified by an expert",True,False,PlantVillage laboratory images; same-session capture
+TOM002,15,Tomato_Early_blight,Tomato,Tomato Early Blight,PLANTVILLAGE,1000,251,0,1000,"source label, unverified by an expert",True,False,PlantVillage laboratory images; same-session capture
+TOM003,16,Tomato_Late_blight,Tomato,Tomato Late Blight,PLANTVILLAGE,1901,1188,0,1901,"source label, unverified by an expert",True,False,PlantVillage laboratory images; same-session capture
+TOM004,17,Tomato_Leaf_Mold,Tomato,Tomato Leaf Mould,PLANTVILLAGE,952,238,0,952,"source label, unverified by an expert",True,False,PlantVillage laboratory images; same-session capture
+TOM005,18,Tomato_Septoria_leaf_spot,Tomato,Tomato Septoria Leaf Spot,PLANTVILLAGE,1771,1018,0,1771,"source label, unverified by an expert",True,False,PlantVillage laboratory images; same-session capture
+TOM006,19,Tomato_Spider_mites_Two_spotted_spider_mite,Tomato,Tomato Spider Mites (Two-spotted),PLANTVILLAGE,1676,401,0,1676,"source label, unverified by an expert",True,False,PlantVillage laboratory images; same-session capture
+TOM007,20,Tomato_Target_Spot,Tomato,Tomato Target Spot,PLANTVILLAGE,1404,1402,0,1404,"source label, unverified by an expert",True,False,PlantVillage laboratory images; same-session capture
+TOM008,21,Tomato_Tomato_YellowLeaf_Curl_Virus,Tomato,Tomato Yellow Leaf Curl Virus,PLANTVILLAGE,3208,2218,0,3208,"source label, unverified by an expert",True,False,PlantVillage laboratory images; same-session capture
+TOM009,22,Tomato_Tomato_mosaic_virus,Tomato,Tomato Mosaic Virus,PLANTVILLAGE,373,370,0,373,"source label, unverified by an expert",True,False,PlantVillage laboratory images; same-session capture
+TOM010,23,Tomato_healthy,Tomato,Tomato Healthy,PLANTVILLAGE,1585,819,0,1585,"source label, unverified by an expert",True,False,PlantVillage laboratory images; same-session capture
+MNG009,,,Mango,Mango Turning Brown (provisional),SAR25,0,0,1000,0,"provisional; symptom, not a diagnosis; unreviewed",False,True,excluded from the model

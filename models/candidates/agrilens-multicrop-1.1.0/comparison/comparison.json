@@ -1,0 +1,284 @@
+{
+ "models": {
+  "1.0.0": {
+   "sha256": "776d08ac669d0ea8874a458bfb6ea2657c5d40525d30021c7c8c1204d520332b",
+   "gates": {
+    "confidence": 0.4,
+    "margin": 0.12,
+    "ood_logit": 2.1
+   },
+   "gates_file": "training\\evaluation\\calibration_1.0.0\\FROZEN_GATE_CALIBRATION.json"
+  },
+  "1.1.0": {
+   "sha256": "0774ca4aadab930086ade370234919a69cf35c8a22844355f78a20a194e0f08e",
+   "gates": {
+    "confidence": 0.4,
+    "margin": 0.12,
+    "ood_logit": 2.9
+   },
+   "gates_file": "D:\\OneDrive - Faiyaz Personal\\OneDrive\\3. Shreyance related Documents\\AGRILENS_5.0.0\\Model_Trainer_Program\\exports\\agrilens-multicrop-1.1.0\\calibration\\FROZEN_GATE_CALIBRATION.json"
+  }
+ },
+ "c270_proxy_profiles": [
+  {
+   "name": "warm_overexposed",
+   "r": 1.08,
+   "b": 0.9,
+   "gain": 1.3,
+   "gamma": 1.0,
+   "wash": 0.15,
+   "noise": 4.0,
+   "down": 0.5,
+   "blur": 0.0,
+   "jpeg": 55
+  },
+  {
+   "name": "cool_dim",
+   "r": 0.92,
+   "b": 1.1,
+   "gain": 0.8,
+   "gamma": 1.15,
+   "wash": 0.0,
+   "noise": 6.0,
+   "down": 0.6,
+   "blur": 0.0,
+   "jpeg": 60
+  },
+  {
+   "name": "washed_out",
+   "r": 1.0,
+   "b": 1.0,
+   "gain": 1.15,
+   "gamma": 0.9,
+   "wash": 0.3,
+   "noise": 3.0,
+   "down": 0.45,
+   "blur": 0.0,
+   "jpeg": 50
+  },
+  {
+   "name": "soft_focus",
+   "r": 1.03,
+   "b": 0.97,
+   "gain": 1.05,
+   "gamma": 1.0,
+   "wash": 0.05,
+   "noise": 5.0,
+   "down": 1.0,
+   "blur": 1.2,
+   "jpeg": 45
+  }
+ ],
+ "sets": {
+  "val": {
+   "n": 3844,
+   "1.0.0": {
+    "top1_accuracy": 0.9682622268470343,
+    "macro_f1": 0.9655813807880603,
+    "correct_and_accepted": 0.9630593132154006,
+    "rejected_unknown": 0.008064516129032258,
+    "low_confidence": 0.00026014568158168577,
+    "wrong_but_accepted": 0.02861602497398543,
+    "by_crop_accuracy": {
+     "Apple": 0.9076923076923077,
+     "Mango": 0.9788732394366197,
+     "Potato": 0.9847560975609756,
+     "Tomato": 0.968801996672213
+    },
+    "mango_recall": {
+     "Mango_Anthracnose": 0.9794520547945206,
+     "Mango_Bacterial_Canker": 1.0,
+     "Mango_Cutting_Weevil": 1.0,
+     "Mango_Die_Back": 0.8269230769230769,
+     "Mango_Gall_Midge": 0.9859154929577465,
+     "Mango_Healthy": 0.9914529914529915,
+     "Mango_Powdery_Mildew": 0.9912280701754386,
+     "Mango_Sooty_Mould": 0.9859154929577465
+    }
+   },
+   "1.1.0": {
+    "top1_accuracy": 0.9758064516129032,
+    "macro_f1": 0.9737369203842636,
+    "correct_and_accepted": 0.9654006243496358,
+    "rejected_unknown": 0.014568158168574402,
+    "low_confidence": 0.0,
+    "wrong_but_accepted": 0.020031217481789803,
+    "by_crop_accuracy": {
+     "Apple": 0.9423076923076923,
+     "Mango": 0.9776995305164319,
+     "Potato": 0.9939024390243902,
+     "Tomato": 0.9762895174708819
+    },
+    "mango_recall": {
+     "Mango_Anthracnose": 0.9931506849315068,
+     "Mango_Bacterial_Canker": 1.0,
+     "Mango_Cutting_Weevil": 1.0,
+     "Mango_Die_Back": 0.8269230769230769,
+     "Mango_Gall_Midge": 1.0,
+     "Mango_Healthy": 0.9572649572649573,
+     "Mango_Powdery_Mildew": 0.9956140350877193,
+     "Mango_Sooty_Mould": 0.9577464788732394
+    }
+   }
+  },
+  "val_c270_proxy": {
+   "n": 3844,
+   "1.0.0": {
+    "top1_accuracy": 0.8577003121748179,
+    "macro_f1": 0.8693274504705982,
+    "correct_and_accepted": 0.812955254942768,
+    "rejected_unknown": 0.09625390218522373,
+    "low_confidence": 0.0015608740894901144,
+    "wrong_but_accepted": 0.08922996878251821,
+    "by_crop_accuracy": {
+     "Apple": 0.9,
+     "Mango": 0.9342723004694836,
+     "Potato": 0.8719512195121951,
+     "Tomato": 0.8240432612312812
+    },
+    "mango_recall": {
+     "Mango_Anthracnose": 0.8082191780821918,
+     "Mango_Bacterial_Canker": 0.9827586206896551,
+     "Mango_Cutting_Weevil": 1.0,
+     "Mango_Die_Back": 0.75,
+     "Mango_Gall_Midge": 0.9577464788732394,
+     "Mango_Healthy": 0.9914529914529915,
+     "Mango_Powdery_Mildew": 0.9824561403508771,
+     "Mango_Sooty_Mould": 0.9577464788732394
+    }
+   },
+   "1.1.0": {
+    "top1_accuracy": 0.964360041623309,
+    "macro_f1": 0.9570794472847535,
+    "correct_and_accepted": 0.951092611862643,
+    "rejected_unknown": 0.02133194588969823,
+    "low_confidence": 0.0,
+    "wrong_but_accepted": 0.027575442247658687,
+    "by_crop_accuracy": {
+     "Apple": 0.9115384615384615,
+     "Mango": 0.954225352112676,
+     "Potato": 0.9969512195121951,
+     "Tomato": 0.9692179700499168
+    },
+    "mango_recall": {
+     "Mango_Anthracnose": 0.958904109589041,
+     "Mango_Bacterial_Canker": 1.0,
+     "Mango_Cutting_Weevil": 1.0,
+     "Mango_Die_Back": 0.75,
+     "Mango_Gall_Midge": 1.0,
+     "Mango_Healthy": 0.9145299145299145,
+     "Mango_Powdery_Mildew": 0.9868421052631579,
+     "Mango_Sooty_Mould": 0.9014084507042254
+    }
+   }
+  },
+  "test_known_device": {
+   "n": 3595,
+   "1.0.0": {
+    "top1_accuracy": 0.9585535465924896,
+    "macro_f1": 0.9269950268212156,
+    "correct_and_accepted": 0.9518776077885953,
+    "rejected_unknown": 0.015855354659248956,
+    "low_confidence": 0.0,
+    "wrong_but_accepted": 0.03226703755215577,
+    "by_crop_accuracy": {
+     "Apple": 0.9459459459459459,
+     "Mango": 0.9157212317666127,
+     "Potato": 0.990625,
+     "Tomato": 0.9666527719883284
+    },
+    "mango_recall": {
+     "Mango_Anthracnose": 0.9586206896551724,
+     "Mango_Bacterial_Canker": 1.0,
+     "Mango_Cutting_Weevil": 1.0,
+     "Mango_Die_Back": 0.46153846153846156,
+     "Mango_Gall_Midge": 1.0,
+     "Mango_Healthy": 0.9197080291970803,
+     "Mango_Powdery_Mildew": 0.9585798816568047,
+     "Mango_Sooty_Mould": 1.0
+    }
+   },
+   "1.1.0": {
+    "top1_accuracy": 0.9744089012517385,
+    "macro_f1": 0.9609591592610803,
+    "correct_and_accepted": 0.9660639777468707,
+    "rejected_unknown": 0.015299026425591099,
+    "low_confidence": 0.0,
+    "wrong_but_accepted": 0.018636995827538246,
+    "by_crop_accuracy": {
+     "Apple": 0.9613899613899614,
+     "Mango": 0.9416531604538088,
+     "Potato": 0.996875,
+     "Tomato": 0.9812421842434348
+    },
+    "mango_recall": {
+     "Mango_Anthracnose": 1.0,
+     "Mango_Bacterial_Canker": 1.0,
+     "Mango_Cutting_Weevil": 1.0,
+     "Mango_Die_Back": 0.9038461538461539,
+     "Mango_Gall_Midge": 1.0,
+     "Mango_Healthy": 0.8248175182481752,
+     "Mango_Powdery_Mildew": 0.9644970414201184,
+     "Mango_Sooty_Mould": 0.9777777777777777
+    }
+   }
+  },
+  "test_heldout_device": {
+   "n": 325,
+   "1.0.0": {
+    "top1_accuracy": 0.8676923076923077,
+    "macro_f1": 0.6142262895174708,
+    "correct_and_accepted": 0.8215384615384616,
+    "rejected_unknown": 0.05846153846153846,
+    "low_confidence": 0.0,
+    "wrong_but_accepted": 0.12,
+    "by_crop_accuracy": {
+     "Mango": 0.8676923076923077
+    },
+    "mango_recall": {
+     "Mango_Anthracnose": 0.8691588785046729,
+     "Mango_Powdery_Mildew": 0.75
+    }
+   },
+   "1.1.0": {
+    "top1_accuracy": 0.9692307692307692,
+    "macro_f1": 0.7587552742616034,
+    "correct_and_accepted": 0.8984615384615384,
+    "rejected_unknown": 0.08307692307692308,
+    "low_confidence": 0.0,
+    "wrong_but_accepted": 0.018461538461538463,
+    "by_crop_accuracy": {
+     "Mango": 0.9692307692307692
+    },
+    "mango_recall": {
+     "Mango_Anthracnose": 0.9688473520249221,
+     "Mango_Powdery_Mildew": 1.0
+    }
+   }
+  },
+  "ood_eval": {
+   "n": 245,
+   "1.0.0": {
+    "accepted_rate": 0.3551020408163265,
+    "unknown_rate": 0.6448979591836734,
+    "accepted_by_group": {
+     "nonleaf_background": 0.3333333333333333,
+     "nonleaf_photo": 0.08333333333333333,
+     "nonleaf_synthetic": 0.03333333333333333,
+     "unsupported_mango_condition_turning_brown": 0.8125
+    }
+   },
+   "1.1.0": {
+    "accepted_rate": 0.3346938775510204,
+    "unknown_rate": 0.6653061224489796,
+    "accepted_by_group": {
+     "nonleaf_background": 0.15555555555555556,
+     "nonleaf_photo": 0.16666666666666666,
+     "nonleaf_synthetic": 0.05,
+     "unsupported_mango_condition_turning_brown": 0.775
+    }
+   }
+  }
+ },
+ "seconds": 739.0231802463531
+}

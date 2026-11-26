@@ -1,0 +1,47 @@
+{
+ "rule": "highest validation macro-F1; ties within 0.001 broken by lower validation loss (SELECTION_RULE.md)",
+ "runs": [
+  {
+   "run_id": "multicrop11_R2w_s42",
+   "recipe": "R2_last_two_stages",
+   "seed": 42,
+   "epochs_run": 15,
+   "best_epoch": 12,
+   "val_macro_f1": 0.9767557970113606,
+   "val_accuracy": 0.9773673257023934,
+   "val_loss": 0.14067859947681427,
+   "train_minutes": 27.48752325773239
+  },
+  {
+   "run_id": "multicrop11_R3w_s42",
+   "recipe": "R3_full",
+   "seed": 42,
+   "epochs_run": 20,
+   "best_epoch": 16,
+   "val_macro_f1": 0.9704879242560124,
+   "val_accuracy": 0.977627471383975,
+   "val_loss": 0.13296687602996826,
+   "train_minutes": 59.05308611790339
+  },
+  {
+   "run_id": "multicrop11_R3w_s43",
+   "recipe": "R3_full",
+   "seed": 43,
+   "epochs_run": 11,
+   "best_epoch": 7,
+   "val_macro_f1": 0.960469591963529,
+   "val_accuracy": 0.9627991675338189,
+   "val_loss": 0.180959552526474,
+   "train_minutes": 34.04368990659714
+  }
+ ],
+ "chosen": "multicrop11_R2w_s42",
+ "chosen_checkpoint": "training_runs\\agrilens-multicrop-1.1.0\\multicrop11_R2w_s42\\best.pt",
+ "reference": {
+  "run_id": "multicrop1_R2_s42",
+  "val_macro_f1": 0.9642502817295483,
+  "val_accuracy": 0.9659209157127991,
+  "val_loss": 0.16839508712291718
+ },
+ "validation_macro_f1_change_vs_reference": 0.012505515281812318
+}

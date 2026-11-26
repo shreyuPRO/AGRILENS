@@ -1,0 +1,10 @@
+{
+ "candidate": "mango5_exp001 / B_partial_ft_s43",
+ "status": "EXPERIMENTAL five-class Mango candidate; preserved for comparison; not part of 5.0.0",
+ "preserved_at": "D:\\AGRILENS_Training\\AGL-MANGO-MD\\candidates\\mango5_exp001_B_partial_ft_s43_v1",
+ "onnx_sha256": "a241d91c8b06352f3185343dd0371680e4c4f6c6c1257b151dc3c9d775e55aba",
+ "checkpoint_sha256": "1fcddfd8366eae4753cc0e7c28c8ec86051d3722d3e848e1fd379b39e306a9e8",
+ "checksums": "CANDIDATE_CHECKSUMS.sha256 in the preserved folder (48 files)",
+ "kiosk_path_evaluation": "executed once 2026-11-17: P1 pass, P2 FAIL (false rejection 6.0% / 12.4%), P3 FAIL, P4 pass, P5 pass",
+ "why_not_in_repo": "binary artefacts kept outside git; this pointer records identity"
+}

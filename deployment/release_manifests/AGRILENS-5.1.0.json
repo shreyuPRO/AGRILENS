@@ -1,0 +1,78 @@
+{
+ "release": "AGRILENS-5.1.0",
+ "app_version": "5.1.0",
+ "build_timestamp": "2026-11-18 19:24 (development build)",
+ "model": {
+  "id": "AGRILENS-MULTICROP",
+  "version": "1.0.0",
+  "sha256": "776d08ac669d0ea8874a458bfb6ea2657c5d40525d30021c7c8c1204d520332b",
+  "bytes": 10067999,
+  "manifest": "models/candidates/agrilens-multicrop-1.0.0/MODEL_MANIFEST.json"
+ },
+ "dataset": {
+  "id_version": "AGL-MULTICROP-MD 1.0.0",
+  "freeze_checksums_sha256": "12449a5caf1bfc736a9be1a83fa71f603b29045b48eaa7db82b0bffd2e5f8c0a"
+ },
+ "device_package": {
+  "path": "AGRILENS_RaspberryPi/",
+  "files": 38,
+  "SHA256SUMS_sha256": "061d1399d0fdaa72433bc7f807a6482caddee35e39d55382edf12924bab920b9",
+  "RELEASE_MANIFEST_sha256": "90dad68ea2e4b72b0f40cfb04474159ff55b949108b3d56c9a7085670bc13f91",
+  "main_py_sha256": "98110d357a8fb86fbddbf4419e494ec784830d154361fcef60da0727d7f93597",
+  "ota_files_fetched_by_devices": [
+   "main.py",
+   "labels.txt",
+   "logos/agrilens_logo.jpg",
+   "logos/gundecha_logo.png",
+   "HOW_TO_RUN_ON_RASPBERRY_PI.md",
+   "setup_rpi.sh",
+   "run_agrilens.sh",
+   "ota_update.sh",
+   "setup_remote_ota.sh",
+   "rollback.sh",
+   "agrilens.onnx"
+  ]
+ },
+ "gate_calibration": {
+  "file": "training/evaluation/calibration_1.0.0/FROZEN_GATE_CALIBRATION.json",
+  "sha256": "d8df659c6d7d639f1db2c2336b781fb5513376211208ea3faa0da8bfb52b8fe5",
+  "confidence": 0.4,
+  "margin": 0.12,
+  "ood_logit": 2.1
+ },
+ "release_evaluation": {
+  "lock_file_sha256": "d68624edcd28492141c3c7f4c774dbe7c1e63c1525597fc55b0fa17e970e9168",
+  "results_sha256": "3fc27449f58068d6ea4f5d98adffbc45b48e9fd095cbf2b15f27843ff79541a1",
+  "criteria": {
+   "C1": true,
+   "C2": false,
+   "C3": true,
+   "C4": true,
+   "C5": true,
+   "C6": true,
+   "C7": true,
+   "C8": true,
+   "C9": true,
+   "ALL_PASS": false
+  }
+ },
+ "automated_tests": {
+  "tests": 196,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "passed": 196
+ },
+ "rollback_release": {
+  "path": "deployment/rollback/AGRILENS-5.0.1-rollback/",
+  "SHA256SUMS_sha256": "8d7cf8c32206574693da8ef5e9c0a538e3c52444887820eb149f2974058319ff"
+ },
+ "status": {
+  "published": false,
+  "deployed": false,
+  "raspberry_pi_validation": "pending",
+  "c270_field_validation": "pending",
+  "expert_label_review": "pending",
+  "release_criteria": "FAILED: C2"
+ }
+}

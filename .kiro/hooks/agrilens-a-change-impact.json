@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "AGRILENS A: change impact after code modification",
+      "trigger": "PostToolUse",
+      "description": "After a file is written, makes the agent run the AGRILENS impact analysis (areas, version increment, documentation, tests, stale comments) before finishing the task.",
+      "matcher": "^(fs_write|str_replace|fs_append|delete_file|smart_relocate|semantic_rename)$",
+      "action": {
+        "type": "agent",
+        "prompt": "AGRILENS governance (hook A): a repository file was modified. Before you finish this task, run `python tools/governance/agl_governance.py impact` from the AGRILENS repository root and act on it: decide and apply the version increment with `agl_governance.py bump` if shipped files changed, update the named documentation in the same task, add or update the named tests, fix stale comments or configuration references, and add a complete entry to documentation/CHANGE_REGISTER.md. Report a concise change summary. Do not push, publish or trigger OTA."
+      }
+    }
+  ]
+}

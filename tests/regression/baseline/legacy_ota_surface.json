@@ -1,0 +1,55 @@
+{
+  "note": "What the deployed OTA fetches from main/AGRILENS_RaspberryPi/ (committed blobs, not the working tree). These must not change before the device is migrated.",
+  "files": {
+    "main.py": {
+      "git_blob": "9bd5bf85ec47cf1fb2d037cbcce71cfe66725439",
+      "sha256": "b600d71ce58adb3599a8a1f84e4ee9728cdede15af1d199cb4ee041fedc43deb",
+      "bytes": 222828
+    },
+    "labels.txt": {
+      "git_blob": "aa33329f24c044d677a533119d48ad22fda1edd0",
+      "sha256": "5087b575db52af07cf8efe82b033ea2715b7dd6b20106f3554ae7945e7aed393",
+      "bytes": 482
+    },
+    "agrilens.onnx": {
+      "git_blob": "cfebb831716531611cd6ba50d5c61125bdb5cb91",
+      "sha256": "0b5bb7fb3916a7c1138f90cfc9abfdc130f06495a34282d474e52718b072ff80",
+      "bytes": 10068009
+    },
+    "logos/agrilens_logo.jpg": {
+      "git_blob": "e62f8fb6600396997ee2a762d0854a86934c8ad4",
+      "sha256": "e0cf4b7a15bdb3a4581c60dd86b2af89ea2fb6357f9063cc06c87c7d35d66600",
+      "bytes": 273451
+    },
+    "logos/gundecha_logo.png": {
+      "git_blob": "8f71fab6f375eb314f29675cf93eb480baf3cefb",
+      "sha256": "700bfcebc81c125b6449a51050c602ecd1c0a7149a00780e64bc44e7a3d5be8a",
+      "bytes": 277508
+    },
+    "HOW_TO_RUN_ON_RASPBERRY_PI.md": {
+      "git_blob": "092063a85fefeecc332f3696d9942a1606926aa7",
+      "sha256": "a5e15454a50bb8d071581522369afbf4278725bddfff366d5ba6633274ae6225",
+      "bytes": 9268
+    },
+    "setup_rpi.sh": {
+      "git_blob": "2c6dadf9c358d1984b8f4151134e7fd63d936821",
+      "sha256": "36f12813f95196d0b1ab813413b960cc5155976f57a68e5bf2210489df22d329",
+      "bytes": 720
+    },
+    "run_agrilens.sh": {
+      "git_blob": "bd0596103adff975554c5a91b67d82f21a458fab",
+      "sha256": "c475885f7d27230efa64a6bb2d555bea5e952a7e36ee2412efaf1219604f4779",
+      "bytes": 208
+    },
+    "ota_update.sh": {
+      "git_blob": "14596c61b54c6cf25e441ac091b7bbbad6a05112",
+      "sha256": "24cbf2b7bbc3e0f89b8cfd7e4107a60375e034862e62280f87346bad38359180",
+      "bytes": 6798
+    },
+    "setup_remote_ota.sh": {
+      "git_blob": "8a141a15d4b51ac06a188b14367c1477b9c44199",
+      "sha256": "7d3e08cce688c1a78585062d85928f47f303bff5ab4a00e397f633d5985d4a97",
+      "bytes": 2708
+    }
+  }
+}
